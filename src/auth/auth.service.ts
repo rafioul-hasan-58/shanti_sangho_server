@@ -54,8 +54,16 @@ interface RefreshTokenPayload {
   email: string;
 }
 
+interface PasswordResetOtpState {
+  hash: string;
+  expiresAt: Date;
+  verified: boolean;
+}
+
 @Injectable()
 export class AuthService {
+  private readonly resetOtpStore = new Map<string, PasswordResetOtpState>();
+
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
@@ -381,24 +389,29 @@ export class AuthService {
   }
 
   private assertOtpValid(user: User, otp?: string): void {
+    const normalizedEmail = user.email.toLowerCase().trim();
+    const record = this.resetOtpStore.get(normalizedEmail);
+
     if (
-      !user.resetOtpHash ||
-      !user.resetOtpExpiresAt ||
-      user.resetOtpExpiresAt.getTime() <= Date.now()
+      !record ||
+      !record.hash ||
+      !record.expiresAt ||
+      record.expiresAt.getTime() <= Date.now()
     ) {
+      this.resetOtpStore.delete(normalizedEmail);
       throw new BadRequestException(
         'OTP is invalid or has expired. Please request a new one.',
       );
     }
 
     if (otp !== undefined) {
-      if (!this.isOtpMatch(otp.trim(), user.resetOtpHash)) {
+      if (!this.isOtpMatch(otp.trim(), record.hash)) {
         throw new BadRequestException('Invalid OTP code');
       }
       return;
     }
 
-    if (!user.resetOtpVerified) {
+    if (!record.verified) {
       throw new BadRequestException(
         'Please verify your OTP before resetting your password',
       );
@@ -406,19 +419,35 @@ export class AuthService {
   }
 
   /**
+   * Test/internal helper to pre-seed or inspect OTP store.
+   */
+  getResetOtpRecord(email: string): PasswordResetOtpState | undefined {
+    return this.resetOtpStore.get(email.toLowerCase().trim());
+  }
+
+  setResetOtpRecord(email: string, state: PasswordResetOtpState): void {
+    this.resetOtpStore.set(email.toLowerCase().trim(), state);
+  }
+
+  clearResetOtpStore(): void {
+    this.resetOtpStore.clear();
+  }
+
+  /**
    * Generate a 6-digit OTP and send it via SMTP for password reset.
    */
   async forgotPassword(payload: ForgotPasswordDto) {
     const user = await this.findResettableUser(payload.email);
+    const normalizedEmail = user.email.toLowerCase().trim();
 
     const otp = crypto.randomInt(100000, 1000000).toString();
     const resetOtpHash = this.hashOtp(otp);
     const resetOtpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
 
-    await this.usersRepository.update(user.id, {
-      resetOtpHash,
-      resetOtpExpiresAt,
-      resetOtpVerified: false,
+    this.resetOtpStore.set(normalizedEmail, {
+      hash: resetOtpHash,
+      expiresAt: resetOtpExpiresAt,
+      verified: false,
     });
 
     try {
@@ -429,11 +458,7 @@ export class AuthService {
         OTP_EXPIRY_MINUTES,
       );
     } catch (error) {
-      await this.usersRepository.update(user.id, {
-        resetOtpHash: null,
-        resetOtpExpiresAt: null,
-        resetOtpVerified: false,
-      });
+      this.resetOtpStore.delete(normalizedEmail);
       throw error;
     }
 
@@ -450,10 +475,12 @@ export class AuthService {
     const user = await this.findResettableUser(payload.email);
     this.assertOtpValid(user, payload.otp);
 
-    await this.usersRepository.update(user.id, {
-      resetOtpVerified: true,
-      resetOtpExpiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
-    });
+    const normalizedEmail = user.email.toLowerCase().trim();
+    const record = this.resetOtpStore.get(normalizedEmail);
+    if (record) {
+      record.verified = true;
+      record.expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+    }
 
     return {
       email: user.email,
@@ -472,11 +499,10 @@ export class AuthService {
 
     await this.usersRepository.update(user.id, {
       password: hashedPassword,
-      resetOtpHash: null,
-      resetOtpExpiresAt: null,
-      resetOtpVerified: false,
       emailVerified: true,
     });
+
+    this.resetOtpStore.delete(user.email.toLowerCase().trim());
 
     return {
       email: user.email,

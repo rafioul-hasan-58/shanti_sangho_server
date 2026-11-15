@@ -217,16 +217,16 @@ export class MembersService {
     }
 
     const updateData: Prisma.MemberUpdateInput = {
-      ...(dto.nameEn !== undefined && { nameEn: dto.nameEn.trim() }),
-      ...(dto.nameBn !== undefined && { nameBn: dto.nameBn.trim() }),
-      ...(dto.roleEn !== undefined && { roleEn: dto.roleEn.trim() }),
-      ...(dto.roleBn !== undefined && { roleBn: dto.roleBn.trim() }),
-      ...(dto.villageEn !== undefined && { villageEn: dto.villageEn.trim() }),
-      ...(dto.villageBn !== undefined && { villageBn: dto.villageBn.trim() }),
-      ...(dto.summaryEn !== undefined && { summaryEn: dto.summaryEn.trim() }),
-      ...(dto.summaryBn !== undefined && { summaryBn: dto.summaryBn.trim() }),
+      ...(dto.nameEn !== undefined && { nameEn: dto.nameEn?.trim() }),
+      ...(dto.nameBn !== undefined && { nameBn: dto.nameBn?.trim() }),
+      ...(dto.roleEn !== undefined && { roleEn: dto.roleEn?.trim() }),
+      ...(dto.roleBn !== undefined && { roleBn: dto.roleBn?.trim() }),
+      ...(dto.villageEn !== undefined && { villageEn: dto.villageEn?.trim() }),
+      ...(dto.villageBn !== undefined && { villageBn: dto.villageBn?.trim() }),
+      ...(dto.summaryEn !== undefined && { summaryEn: dto.summaryEn?.trim() }),
+      ...(dto.summaryBn !== undefined && { summaryBn: dto.summaryBn?.trim() }),
       ...(dto.joiningYear !== undefined && {
-        joiningYear: dto.joiningYear.trim(),
+        joiningYear: dto.joiningYear?.trim(),
       }),
       ...(dto.image !== undefined && {
         image: dto.image?.trim() || null,

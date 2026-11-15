@@ -27,16 +27,13 @@ const NULLABLE_PROFILE_STRING_FIELDS = [
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  /**
-   * Check if a string is a 24-character hexadecimal MongoDB ObjectId.
-   */
+  // Check if a valid MongoDB ObjectId.
+
   private isValidObjectId(id: string): boolean {
     return /^[0-9a-fA-F]{24}$/.test(id);
   }
 
-  /**
-   * Fetch user by ID and throw if ID is invalid or user does not exist.
-   */
+  // Fetch user by ID and throw if ID is invalid or user does not exist.
   private async findUserByIdOrThrow(userId: string): Promise<User> {
     const cleanId = userId.trim();
     if (!this.isValidObjectId(cleanId)) {
@@ -51,9 +48,7 @@ export class UsersService {
     return user;
   }
 
-  /**
-   * Fetch user by ID and verify the account exists and is not suspended.
-   */
+  // Fetch user by ID and verify the account exists and is not suspended.
   private async findActiveUserOrThrow(userId: string): Promise<User> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
@@ -65,15 +60,18 @@ export class UsersService {
     return user;
   }
 
-  /**
-   * Map shared profile fields from DTO into a Prisma update payload.
-   */
+  // Map shared profile fields from DTO into a Prisma update payload.
   private buildProfileUpdateData(
     dto: UpdateProfileDto,
   ): Prisma.UserUpdateInput {
     const updateData: Prisma.UserUpdateInput = {};
 
     if (dto.fullName !== undefined) {
+      if (!dto.fullName || typeof dto.fullName !== 'string') {
+        throw new BadRequestException(
+          'Full name must be at least 2 characters',
+        );
+      }
       const trimmedName = dto.fullName.trim();
       if (trimmedName.length < 2) {
         throw new BadRequestException(
@@ -86,7 +84,7 @@ export class UsersService {
     for (const field of NULLABLE_PROFILE_STRING_FIELDS) {
       const value = dto[field];
       if (value !== undefined) {
-        updateData[field] = value.trim() || null;
+        updateData[field] = value ? value.trim() || null : null;
       }
     }
 
@@ -101,17 +99,14 @@ export class UsersService {
     return updateData;
   }
 
-  /**
-   * Get the authenticated user's profile.
-   */
+  // Get the authenticated user's profile.
+
   async getProfile(userId: string) {
     const user = await this.findActiveUserOrThrow(userId);
     return sanitizeUser(user);
   }
 
-  /**
-   * Update the authenticated user's profile fields.
-   */
+  // Update the authenticated user's profile fields.
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const existing = await this.findActiveUserOrThrow(userId);
     const updateData = this.buildProfileUpdateData(dto);

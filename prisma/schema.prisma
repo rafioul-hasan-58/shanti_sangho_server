@@ -38,9 +38,6 @@ model User {
   phoneVerified     Boolean        @default(false)
   adminVerified     Boolean        @default(false)
   googleId          String?
-  resetOtpHash      String?
-  resetOtpExpiresAt DateTime?
-  resetOtpVerified  Boolean        @default(false)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 }

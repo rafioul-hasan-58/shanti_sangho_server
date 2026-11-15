@@ -50,9 +50,6 @@ describe('UsersService', () => {
     phoneVerified: false,
     adminVerified: false,
     googleId: null,
-    resetOtpHash: null,
-    resetOtpExpiresAt: null,
-    resetOtpVerified: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -93,9 +90,6 @@ describe('UsersService', () => {
       expect(profile.id).toBe(mockUser.id);
       expect(profile.email).toBe(mockUser.email);
       expect('password' in profile).toBe(false);
-      expect('resetOtpHash' in profile).toBe(false);
-      expect('resetOtpExpiresAt' in profile).toBe(false);
-      expect('resetOtpVerified' in profile).toBe(false);
     });
 
     it('should throw NotFoundException if user does not exist', async () => {
@@ -156,6 +150,26 @@ describe('UsersService', () => {
       expect(repository.update).not.toHaveBeenCalled();
       expect(result.id).toBe(mockUser.id);
       expect('password' in result).toBe(false);
+    });
+
+    it('should safely handle null values in nullable profile fields without throwing', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        fatherName: null,
+        bio: null,
+      });
+
+      const result = await service.updateProfile(mockUser.id, {
+        fatherName: null as unknown as string,
+        bio: null as unknown as string,
+      });
+
+      expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
+        fatherName: null,
+        bio: null,
+      });
+      expect(result.id).toBe(mockUser.id);
     });
 
     it('should throw BadRequestException if trimmed fullName is shorter than 2 characters', async () => {
@@ -320,6 +334,27 @@ describe('UsersService', () => {
         adminVerified: false,
       });
       expect(result.adminVerified).toBe(false);
+    });
+
+    it('should safely handle null values when updating user via admin API', async () => {
+      repository.findById.mockResolvedValue(mockUser);
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        profession: null,
+      });
+
+      const result = await service.updateUser(
+        mockUser.id,
+        {
+          profession: null as unknown as string,
+        },
+        actorId,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(mockUser.id, {
+        profession: null,
+      });
+      expect(result.id).toBe(mockUser.id);
     });
 
     it('should prevent changing own role or suspending own account', async () => {

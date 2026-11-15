@@ -61,9 +61,6 @@ describe('AuthService', () => {
     phoneVerified: false,
     adminVerified: false,
     googleId: null,
-    resetOtpHash: null,
-    resetOtpExpiresAt: null,
-    resetOtpVerified: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -112,6 +109,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+    service.clearResetOtpStore();
   });
 
   it('should be defined', () => {
@@ -320,18 +318,11 @@ describe('AuthService', () => {
       expect(usersRepository.findByEmail).toHaveBeenCalledWith(
         'test@example.com',
       );
-      const updateCalls = usersRepository.update.mock.calls as [
-        string,
-        {
-          resetOtpHash?: string | null;
-          resetOtpExpiresAt?: Date | null;
-          resetOtpVerified?: boolean;
-        },
-      ][];
-      expect(updateCalls[0][0]).toBe(mockUser.id);
-      expect(typeof updateCalls[0][1].resetOtpHash).toBe('string');
-      expect(updateCalls[0][1].resetOtpExpiresAt).toBeInstanceOf(Date);
-      expect(updateCalls[0][1].resetOtpVerified).toBe(false);
+      const record = service.getResetOtpRecord(mockUser.email);
+      expect(record).toBeDefined();
+      expect(typeof record?.hash).toBe('string');
+      expect(record?.expiresAt).toBeInstanceOf(Date);
+      expect(record?.verified).toBe(false);
 
       const mailCalls = mailService.sendPasswordResetOtp.mock.calls as [
         string,
@@ -359,11 +350,7 @@ describe('AuthService', () => {
         service.forgotPassword({ email: 'test@example.com' }),
       ).rejects.toThrow('SMTP down');
 
-      expect(usersRepository.update).toHaveBeenLastCalledWith(mockUser.id, {
-        resetOtpHash: null,
-        resetOtpExpiresAt: null,
-        resetOtpVerified: false,
-      });
+      expect(service.getResetOtpRecord(mockUser.email)).toBeUndefined();
     });
 
     it('should throw NotFoundException when email is not registered', async () => {
@@ -383,10 +370,11 @@ describe('AuthService', () => {
       .digest('hex');
 
     it('should verify valid OTP and mark resetOtpVerified true', async () => {
-      usersRepository.findByEmail.mockResolvedValue({
-        ...mockUser,
-        resetOtpHash: validHash,
-        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      service.setResetOtpRecord(mockUser.email, {
+        hash: validHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        verified: false,
       });
 
       const result = await service.verifyOtp({
@@ -394,24 +382,18 @@ describe('AuthService', () => {
         otp: validOtp,
       });
 
-      const updateCalls = usersRepository.update.mock.calls as [
-        string,
-        {
-          resetOtpExpiresAt?: Date | null;
-          resetOtpVerified?: boolean;
-        },
-      ][];
-      expect(updateCalls[0][0]).toBe(mockUser.id);
-      expect(updateCalls[0][1].resetOtpVerified).toBe(true);
-      expect(updateCalls[0][1].resetOtpExpiresAt).toBeInstanceOf(Date);
+      const record = service.getResetOtpRecord(mockUser.email);
+      expect(record?.verified).toBe(true);
+      expect(record?.expiresAt).toBeInstanceOf(Date);
       expect(result).toEqual({ email: mockUser.email, verified: true });
     });
 
     it('should throw BadRequestException if OTP is incorrect', async () => {
-      usersRepository.findByEmail.mockResolvedValue({
-        ...mockUser,
-        resetOtpHash: validHash,
-        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      service.setResetOtpRecord(mockUser.email, {
+        hash: validHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        verified: false,
       });
 
       await expect(
@@ -420,10 +402,11 @@ describe('AuthService', () => {
     });
 
     it('should throw BadRequestException if OTP has expired', async () => {
-      usersRepository.findByEmail.mockResolvedValue({
-        ...mockUser,
-        resetOtpHash: validHash,
-        resetOtpExpiresAt: new Date(Date.now() - 1000),
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      service.setResetOtpRecord(mockUser.email, {
+        hash: validHash,
+        expiresAt: new Date(Date.now() - 1000),
+        verified: false,
       });
 
       await expect(
@@ -440,11 +423,11 @@ describe('AuthService', () => {
       .digest('hex');
 
     it('should reset password when OTP was previously verified', async () => {
-      usersRepository.findByEmail.mockResolvedValue({
-        ...mockUser,
-        resetOtpHash: validHash,
-        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        resetOtpVerified: true,
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      service.setResetOtpRecord(mockUser.email, {
+        hash: validHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        verified: true,
       });
 
       const result = await service.resetPassword({
@@ -456,26 +439,23 @@ describe('AuthService', () => {
         string,
         {
           password?: string;
-          resetOtpHash?: string | null;
-          resetOtpExpiresAt?: Date | null;
-          resetOtpVerified?: boolean;
+          emailVerified?: boolean;
         },
       ][];
       expect(updateCalls[0][0]).toBe(mockUser.id);
       expect(typeof updateCalls[0][1].password).toBe('string');
       expect(updateCalls[0][1].password).not.toBe('newPassword123');
-      expect(updateCalls[0][1].resetOtpHash).toBeNull();
-      expect(updateCalls[0][1].resetOtpExpiresAt).toBeNull();
-      expect(updateCalls[0][1].resetOtpVerified).toBe(false);
+      expect(updateCalls[0][1].emailVerified).toBe(true);
+      expect(service.getResetOtpRecord(mockUser.email)).toBeUndefined();
       expect(result).toEqual({ email: mockUser.email });
     });
 
     it('should reset password when inline valid OTP is supplied', async () => {
-      usersRepository.findByEmail.mockResolvedValue({
-        ...mockUser,
-        resetOtpHash: validHash,
-        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        resetOtpVerified: false,
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      service.setResetOtpRecord(mockUser.email, {
+        hash: validHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        verified: false,
       });
 
       const result = await service.resetPassword({
@@ -484,15 +464,16 @@ describe('AuthService', () => {
         newPassword: 'newPassword123',
       });
 
+      expect(service.getResetOtpRecord(mockUser.email)).toBeUndefined();
       expect(result).toEqual({ email: mockUser.email });
     });
 
     it('should throw BadRequestException if OTP has not been verified', async () => {
-      usersRepository.findByEmail.mockResolvedValue({
-        ...mockUser,
-        resetOtpHash: validHash,
-        resetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        resetOtpVerified: false,
+      usersRepository.findByEmail.mockResolvedValue(mockUser);
+      service.setResetOtpRecord(mockUser.email, {
+        hash: validHash,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        verified: false,
       });
 
       await expect(
