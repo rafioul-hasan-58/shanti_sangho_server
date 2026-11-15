@@ -48,7 +48,7 @@ export class UsersController {
     };
   }
 
-  @Patch('profile')
+  @Patch('update-profile')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update authenticated user profile' })

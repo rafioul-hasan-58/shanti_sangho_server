@@ -119,9 +119,7 @@ export class UsersService {
     return sanitizeUser(updated);
   }
 
-  /**
-   * Get all users with optional filters, pagination, and sorting (Admin).
-   */
+  // Get all user by filter and pagination
   async findAll(query: QueryUserDto) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 10;
@@ -192,17 +190,13 @@ export class UsersService {
     };
   }
 
-  /**
-   * Get a single user by MongoDB ObjectId (Admin).
-   */
+  // Get user details by admin
   async findOne(userId: string) {
     const user = await this.findUserByIdOrThrow(userId);
     return sanitizeUser(user);
   }
 
-  /**
-   * Update a user by MongoDB ObjectId (Admin).
-   */
+  // Update user by admin
   async updateUser(userId: string, dto: UpdateUserDto, actorId?: string) {
     const existing = await this.findUserByIdOrThrow(userId);
     const updateData = this.buildProfileUpdateData(dto);
@@ -245,9 +239,7 @@ export class UsersService {
     return sanitizeUser(updated);
   }
 
-  /**
-   * Toggle a user's blocked status between SUSPENDED and ACTIVE (Admin).
-   */
+  // Toggle a user's blocked status between SUSPENDED and ACTIVE (Admin).
   async toggleBlockUser(userId: string, actorId?: string) {
     const existing = await this.findUserByIdOrThrow(userId);
 
@@ -269,9 +261,7 @@ export class UsersService {
     return sanitizeUser(updated);
   }
 
-  /**
-   * Permanently delete a user by MongoDB ObjectId (Admin).
-   */
+  // Delete user by admin
   async deleteUser(userId: string, actorId?: string) {
     const existing = await this.findUserByIdOrThrow(userId);
 
