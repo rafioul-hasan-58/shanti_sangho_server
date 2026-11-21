@@ -109,6 +109,8 @@ model Fund {
   name          String         @unique
   category      FundCategory
   isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   contributions Contribution[]
   expenses      Expense[]
 }
@@ -132,6 +134,7 @@ model Contribution {
   receivedBy   Member @relation("ContributionReceiver", fields: [receivedById], references: [id])
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([fundId, receivedAt])
 }
@@ -150,6 +153,7 @@ model Expense {
   spentBy   Member? @relation("ExpenseSpender", fields: [spentById], references: [id])
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([fundId, spentAt])
 }

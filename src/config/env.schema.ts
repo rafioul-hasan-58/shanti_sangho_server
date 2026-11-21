@@ -5,7 +5,16 @@ export const envSchema = z.object({
     .enum(['development', 'production', 'test'])
     .default('development'),
   PORT: z.coerce.number().default(3000),
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z
+    .string()
+    .min(1, 'DATABASE_URL is required')
+    .refine(
+      (val) => val.startsWith('mongodb://') || val.startsWith('mongodb+srv://'),
+      {
+        message:
+          'DATABASE_URL must be a valid MongoDB connection string (starting with mongodb:// or mongodb+srv://)',
+      },
+    ),
   JWT_ACCESS_SECRET: z.string().min(10),
   JWT_ACCESS_EXPIRES_IN: z.string().default('7d'),
   JWT_REFRESH_SECRET: z.string().min(10).optional(),
