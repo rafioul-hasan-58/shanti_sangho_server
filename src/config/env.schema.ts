@@ -15,6 +15,7 @@ export const envSchema = z.object({
           'DATABASE_URL must be a valid MongoDB connection string (starting with mongodb:// or mongodb+srv://)',
       },
     ),
+  DATABASE_LOCAL_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(10),
   JWT_ACCESS_EXPIRES_IN: z.string().default('7d'),
   JWT_REFRESH_SECRET: z.string().min(10).optional(),
