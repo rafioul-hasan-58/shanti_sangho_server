@@ -46,7 +46,7 @@ model Member {
   contributionsReceived Contribution[] @relation("ContributionReceiver")
   expensesSpent         Expense[]      @relation("ExpenseSpender")
 
-  @@map("User")
+  @@map("Member")
 }
 
 model Executive {
@@ -73,7 +73,7 @@ model Executive {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  @@map("Member")
+  @@map("Executive")
 }
 
 model ChatSession {
