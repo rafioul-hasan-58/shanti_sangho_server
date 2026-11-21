@@ -59,6 +59,70 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## AI Chatbot (Sports Club Assistant)
+
+The backend provides an AI chatbot endpoint (`POST /api/v1/chat`) backed by DeepSeek LLM (OpenAI-compatible) and tool calling. It answers static club queries (fees, hours, rules, contacts) and lets logged-in members query their own profile details.
+
+### Environment Variables
+Add these to your `.env` file:
+```env
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+### Seeding Club Information
+To seed sample club rules, fees, hours, and contact details into MongoDB:
+```bash
+# Seed club info only
+$ npm run seed:club-info
+
+# Or full database seed (Super Admin + ClubInfo)
+$ npm run seed
+```
+
+### How to Add a New Tool
+1. Create a new file in `src/chat/tools/<your-tool-name>.tool.ts` implementing `ChatTool`:
+   ```typescript
+   import { Injectable } from '@nestjs/common';
+   import type { ChatCompletionTool } from 'openai/resources/chat/completions';
+   import { ChatTool } from './chat-tool.interface';
+   import { ToolContext } from './tool-context';
+
+   @Injectable()
+   export class MyCustomTool implements ChatTool {
+     readonly name = 'my_custom_tool';
+     readonly requiresAuth = false; // or true if member login is required
+
+     readonly definition: ChatCompletionTool = {
+       type: 'function',
+       function: {
+         name: 'my_custom_tool',
+         description: 'Description of what this tool does',
+         parameters: {
+           type: 'object',
+           properties: {
+             topic: { type: 'string', description: 'Parameter description' },
+           },
+           required: ['topic'],
+         },
+       },
+     };
+
+     async execute(args: Record<string, unknown>, ctx: ToolContext): Promise<Record<string, unknown>> {
+       // Identity ALWAYS comes from ctx.user, never from LLM arguments
+       return { data: 'result' };
+     }
+   }
+   ```
+2. Add your tool to `providers` in `src/chat/chat.module.ts`.
+3. Inject the tool in `ToolsRegistry` (`src/chat/tools/tools.registry.ts`) and call `this.registerTool(this.myCustomTool)`.
+4. Done! `ChatService` will automatically advertise and execute the new tool without modification.
+
+### Rate Limiting
+- Anonymous users: 10 requests per minute (keyed by IP).
+- Authenticated users: 30 requests per minute (keyed by member/user ID).
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
