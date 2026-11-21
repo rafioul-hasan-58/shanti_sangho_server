@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MemberType } from '@prisma/client';
+import { BloodGroup, MembershipType, UserStatus } from '@prisma/client';
 import { MembersService } from '../../modules/members/members.service';
 import { GetMyMembershipTool } from './get-my-membership.tool';
 
@@ -12,20 +12,17 @@ describe('GetMyMembershipTool', () => {
 
   const mockMember = {
     id: '64a1b2c3d4e5f67890123456',
-    slug: 'sourav-member',
-    nameEn: 'Sourav Prodhan',
-    nameBn: 'সৌরভ প্রধান',
-    roleEn: 'General Secretary',
-    roleBn: 'সাধারণ সম্পাদক',
-    type: MemberType.COMMITTEE,
-    joiningYear: '2020',
-    isKeyLeader: true,
-    villageEn: 'Shavarchala',
-    villageBn: 'সাবারচালা',
-    summaryEn: 'Active sports organizer',
-    image: 'https://example.com/photo.jpg',
-    imagePublicId: 'members/photo123',
-    internalSecret: 'sensitive-hash-here',
+    fullName: 'Sourav Prodhan',
+    email: 'sourav@example.com',
+    phoneNumber: '+8801700000000',
+    membershipType: MembershipType.PERMANENT,
+    bloodGroup: BloodGroup.O_POSITIVE,
+    status: UserStatus.ACTIVE,
+    village: 'Shavarchala',
+    profession: 'Software Engineer',
+    currentLocation: 'Dhaka',
+    createdAt: new Date('2023-01-01'),
+    password: 'hashed_secret_password',
   };
 
   beforeEach(async () => {
@@ -73,7 +70,7 @@ describe('GetMyMembershipTool', () => {
 
       expect(membersService.findOne).toHaveBeenCalledWith(mockMember.id);
       expect(result).toHaveProperty('memberNumber', mockMember.id);
-      expect(result).toHaveProperty('nameEn', mockMember.nameEn);
+      expect(result).toHaveProperty('fullName', mockMember.fullName);
     });
 
     it('should prefer memberId from user context if provided', async () => {
@@ -102,21 +99,20 @@ describe('GetMyMembershipTool', () => {
 
       expect(result).toEqual({
         memberNumber: mockMember.id,
-        nameEn: mockMember.nameEn,
-        nameBn: mockMember.nameBn,
-        roleEn: mockMember.roleEn,
-        roleBn: mockMember.roleBn,
-        type: mockMember.type,
-        joiningYear: mockMember.joiningYear,
-        isKeyLeader: mockMember.isKeyLeader,
-        villageEn: mockMember.villageEn,
-        villageBn: mockMember.villageBn,
-        summaryEn: mockMember.summaryEn,
+        fullName: mockMember.fullName,
+        email: mockMember.email,
+        phoneNumber: mockMember.phoneNumber,
+        membershipType: mockMember.membershipType,
+        bloodGroup: mockMember.bloodGroup,
+        status: mockMember.status,
+        village: mockMember.village,
+        profession: mockMember.profession,
+        currentLocation: mockMember.currentLocation,
+        memberSince: mockMember.createdAt,
       });
 
-      // Ensure internal or unused fields are never exposed
-      expect(result).not.toHaveProperty('internalSecret');
-      expect(result).not.toHaveProperty('imagePublicId');
+      // Ensure password or credentials are never exposed
+      expect(result).not.toHaveProperty('password');
     });
   });
 
@@ -131,7 +127,7 @@ describe('GetMyMembershipTool', () => {
       expect(result).toEqual({
         error: 'member_not_found',
         message:
-          'No sports club membership profile was found linked to your authenticated user account.',
+          'No sports club membership profile was found linked to your authenticated member account.',
       });
     });
   });

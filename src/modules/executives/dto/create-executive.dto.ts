@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { MemberType } from '@prisma/client';
+import { ExecutiveType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -11,7 +11,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateMemberDto {
+export class CreateExecutiveDto {
   @ApiPropertyOptional({
     description:
       'Unique URL-friendly slug (e.g., emon). Auto-generated from nameEn if omitted.',
@@ -22,7 +22,7 @@ export class CreateMemberDto {
   slug?: string;
 
   @ApiProperty({
-    description: 'Member name in English',
+    description: 'Executive name in English',
     example: 'Md. Emon Hasan',
   })
   @IsNotEmpty({ message: 'Name in English is required' })
@@ -30,7 +30,7 @@ export class CreateMemberDto {
   nameEn: string;
 
   @ApiProperty({
-    description: 'Member name in Bengali',
+    description: 'Executive name in Bengali',
     example: 'মোঃ ইমন হাসান',
   })
   @IsNotEmpty({ message: 'Name in Bengali is required' })
@@ -54,7 +54,7 @@ export class CreateMemberDto {
   roleBn: string;
 
   @ApiPropertyOptional({
-    description: 'Image URL or path of the member',
+    description: 'Image URL or path of the executive',
     example: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
   })
   @IsOptional()
@@ -62,7 +62,7 @@ export class CreateMemberDto {
   image?: string;
 
   @ApiPropertyOptional({
-    description: 'Cloudinary public ID of the member image',
+    description: 'Cloudinary public ID of the executive image',
     example: 'members/c7b2x89a',
   })
   @IsOptional()
@@ -152,7 +152,7 @@ export class CreateMemberDto {
   joiningYear: string;
 
   @ApiPropertyOptional({
-    description: 'Whether the member is a key leader',
+    description: 'Whether the executive is a key leader',
     example: false,
     default: false,
   })
@@ -162,14 +162,16 @@ export class CreateMemberDto {
   isKeyLeader?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Member category type',
-    enum: MemberType,
-    example: MemberType.COMMITTEE,
-    default: MemberType.COMMITTEE,
+    description: 'Executive category type',
+    enum: ExecutiveType,
+    example: ExecutiveType.COMMITTEE,
+    default: ExecutiveType.COMMITTEE,
   })
   @IsOptional()
-  @IsEnum(MemberType, { message: 'Type must be either PIONEER or COMMITTEE' })
-  type?: MemberType;
+  @IsEnum(ExecutiveType, {
+    message: 'Type must be either PIONEER, COMMITTEE, or ADMIN',
+  })
+  type?: ExecutiveType;
 
   @ApiPropertyOptional({
     description: 'Display order priority (ascending)',

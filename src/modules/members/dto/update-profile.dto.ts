@@ -4,7 +4,7 @@ import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({
-    description: 'Full name of the user',
+    description: 'Full name of the member',
     example: 'John Doe',
   })
   @IsOptional()
@@ -46,7 +46,7 @@ export class UpdateProfileDto {
 
   @ApiPropertyOptional({
     enum: BloodGroup,
-    description: 'Blood group of the user',
+    description: 'Blood group of the member',
     example: BloodGroup.A_POSITIVE,
   })
   @IsOptional()
@@ -54,7 +54,7 @@ export class UpdateProfileDto {
   bloodGroup?: BloodGroup;
 
   @ApiPropertyOptional({
-    description: 'Bio of the user',
+    description: 'Bio of the member',
     example: 'Active member of Shanti Sangha',
   })
   @IsOptional()
@@ -62,7 +62,7 @@ export class UpdateProfileDto {
   bio?: string;
 
   @ApiPropertyOptional({
-    description: 'Summary of the user profile',
+    description: 'Summary of the member profile',
     example: 'Community organizer and volunteer',
   })
   @IsOptional()

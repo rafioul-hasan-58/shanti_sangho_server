@@ -6,8 +6,8 @@ import { MailModule } from './mail/mail.module';
 import { ConfigModule } from '@nestjs/config';
 import { validateConfig } from './config/env.schema';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './modules/users';
 import { MembersModule } from './modules/members';
+import { ExecutivesModule } from './modules/executives';
 import { HealthModule } from './health/health.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { UploadModule } from './upload/upload.module';
@@ -23,8 +23,8 @@ import { ChatModule } from './chat/chat.module';
     PrismaModule,
     MailModule,
     AuthModule,
-    UsersModule,
     MembersModule,
+    ExecutivesModule,
     HealthModule,
     CloudinaryModule,
     UploadModule,

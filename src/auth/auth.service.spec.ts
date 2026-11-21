@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { UsersRepository } from '../modules/users/users.repository';
+import { MembersRepository } from '../modules/members/members.repository';
 import { MailService } from '../mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -94,7 +94,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
-          provide: UsersRepository,
+          provide: MembersRepository,
           useValue: usersRepository,
         },
         {

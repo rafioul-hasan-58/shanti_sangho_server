@@ -9,7 +9,7 @@ import {
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import {
-  User,
+  Member,
   Prisma,
   Role,
   UserStatus,
@@ -19,8 +19,8 @@ import {
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { UsersRepository } from '../modules/users/users.repository';
-import { sanitizeUser } from '../modules/users/users.utils';
+import { MembersRepository } from '../modules/members/members.repository';
+import { sanitizeMember } from '../modules/members/members.utils';
 import { MailService } from '../mail/mail.service';
 import {
   RegisterDto,
@@ -65,7 +65,7 @@ export class AuthService {
   private readonly resetOtpStore = new Map<string, PasswordResetOtpState>();
 
   constructor(
-    private readonly usersRepository: UsersRepository,
+    private readonly membersRepository: MembersRepository,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     @Optional()
@@ -73,9 +73,9 @@ export class AuthService {
   ) {}
 
   /**
-   * Helper to generate both accessToken and refreshToken for a user
+   * Helper to generate both accessToken and refreshToken for a member
    */
-  private generateTokens(user: User): {
+  private generateTokens(user: Member): {
     accessToken: string;
     refreshToken: string;
   } {
@@ -167,7 +167,7 @@ export class AuthService {
    */
   async register(payload: RegisterDto) {
     const email = payload.email.toLowerCase().trim();
-    const existing = await this.usersRepository.findByEmail(email);
+    const existing = await this.membersRepository.findByEmail(email);
 
     if (existing) {
       throw new ConflictException('This email is already in use!');
@@ -182,7 +182,7 @@ export class AuthService {
     const membershipType = payload.membershipType || MembershipType.PERMANENT;
     const bloodGroup = payload.bloodGroup || BloodGroup.UNKNOWN;
 
-    const user = await this.usersRepository.create({
+    const user = await this.membersRepository.create({
       fullName,
       email,
       password: hashedPassword,
@@ -217,7 +217,7 @@ export class AuthService {
    */
   async login(payload: LoginDto) {
     const email = payload.email.toLowerCase().trim();
-    const user = await this.usersRepository.findByEmail(email);
+    const user = await this.membersRepository.findByEmail(email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid email or password!');
@@ -266,7 +266,7 @@ export class AuthService {
     const googleId = decoded.sub || null;
 
     // Find or create user
-    let user = await this.usersRepository.findByEmail(email);
+    let user = await this.membersRepository.findByEmail(email);
 
     if (user) {
       if (user.status === UserStatus.SUSPENDED) {
@@ -274,7 +274,7 @@ export class AuthService {
       }
 
       // Update missing profile info if available from Google
-      const updateData: Prisma.UserUpdateInput = {};
+      const updateData: Prisma.MemberUpdateInput = {};
       if (!user.profileImage && profileImage) {
         updateData.profileImage = profileImage;
       }
@@ -285,7 +285,10 @@ export class AuthService {
         updateData.emailVerified = true;
       }
       if (Object.keys(updateData).length > 0) {
-        const updated = await this.usersRepository.update(user.id, updateData);
+        const updated = await this.membersRepository.update(
+          user.id,
+          updateData,
+        );
         user = updated || { ...user, ...updateData };
       }
     } else {
@@ -294,7 +297,7 @@ export class AuthService {
         crypto.randomUUID() + crypto.randomBytes(16).toString('hex');
       const hashedPassword = await bcrypt.hash(randomPassword, 12);
 
-      user = await this.usersRepository.create({
+      user = await this.membersRepository.create({
         fullName,
         email,
         password: hashedPassword,
@@ -342,7 +345,7 @@ export class AuthService {
         },
       );
 
-      const user = await this.usersRepository.findById(payload.id);
+      const user = await this.membersRepository.findById(payload.id);
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
@@ -356,7 +359,7 @@ export class AuthService {
       return {
         accessToken,
         refreshToken,
-        user: sanitizeUser(user),
+        user: sanitizeMember(user),
       };
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -376,9 +379,9 @@ export class AuthService {
     );
   }
 
-  private async findResettableUser(email: string): Promise<User> {
+  private async findResettableUser(email: string): Promise<Member> {
     const normalizedEmail = email.toLowerCase().trim();
-    const user = await this.usersRepository.findByEmail(normalizedEmail);
+    const user = await this.membersRepository.findByEmail(normalizedEmail);
     if (!user) {
       throw new NotFoundException('No account found with this email address');
     }
@@ -388,7 +391,7 @@ export class AuthService {
     return user;
   }
 
-  private assertOtpValid(user: User, otp?: string): void {
+  private assertOtpValid(user: Member, otp?: string): void {
     const normalizedEmail = user.email.toLowerCase().trim();
     const record = this.resetOtpStore.get(normalizedEmail);
 
@@ -497,7 +500,7 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(payload.newPassword, 12);
 
-    await this.usersRepository.update(user.id, {
+    await this.membersRepository.update(user.id, {
       password: hashedPassword,
       emailVerified: true,
     });

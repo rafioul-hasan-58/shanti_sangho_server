@@ -39,8 +39,8 @@ export class MembersRepository implements IBaseRepository<
     return this.prisma.member.findUnique({ where: { id } });
   }
 
-  async findBySlug(slug: string): Promise<Member | null> {
-    return this.prisma.member.findUnique({ where: { slug } });
+  async findByEmail(email: string): Promise<Member | null> {
+    return this.prisma.member.findUnique({ where: { email } });
   }
 
   async update(id: string, data: Prisma.MemberUpdateInput): Promise<Member> {

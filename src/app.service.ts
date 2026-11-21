@@ -6,11 +6,11 @@ export class AppService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getHello(): Promise<string> {
-    const userCount = await this.prisma.user.count();
-    return `Welcome to shanti_sangho_server! (Hello World! ${userCount})`;
+    const memberCount = await this.prisma.member.count();
+    return `Welcome to shanti_sangho_server! (Hello World! ${memberCount})`;
   }
   async triggerNotFound() {
-    return this.prisma.user.update({
+    return this.prisma.member.update({
       where: { id: '000000000000000000000000' }, // valid ObjectId format, doesn't exist
       data: { fullName: 'test' },
     });

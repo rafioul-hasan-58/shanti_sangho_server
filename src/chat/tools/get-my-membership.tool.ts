@@ -16,7 +16,7 @@ export class GetMyMembershipTool implements ChatTool {
     function: {
       name: 'get_my_membership',
       description:
-        "Retrieve the currently logged-in member's own membership details, status, joining year, committee role, and club profile. Takes no arguments.",
+        "Retrieve the currently logged-in member's own membership details, status, membership type, contact info, and club profile. Takes no arguments.",
       parameters: {
         type: 'object',
         properties: {},
@@ -52,26 +52,26 @@ export class GetMyMembershipTool implements ChatTool {
       // Explicit whitelist of safe fields - no credentials or internal hashes
       return {
         memberNumber: member.id,
-        nameEn: member.nameEn,
-        nameBn: member.nameBn,
-        roleEn: member.roleEn,
-        roleBn: member.roleBn,
-        type: member.type,
-        joiningYear: member.joiningYear,
-        isKeyLeader: member.isKeyLeader,
-        villageEn: member.villageEn,
-        villageBn: member.villageBn,
-        summaryEn: member.summaryEn,
+        fullName: member.fullName,
+        email: member.email,
+        phoneNumber: member.phoneNumber,
+        membershipType: member.membershipType,
+        bloodGroup: member.bloodGroup,
+        status: member.status,
+        village: member.village,
+        profession: member.profession,
+        currentLocation: member.currentLocation,
+        memberSince: member.createdAt,
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Could not retrieve membership for user ${ctx.user.id}: ${msg}`,
+        `Could not retrieve membership for member ${ctx.user.id}: ${msg}`,
       );
       return {
         error: 'member_not_found',
         message:
-          'No sports club membership profile was found linked to your authenticated user account.',
+          'No sports club membership profile was found linked to your authenticated member account.',
       };
     }
   }

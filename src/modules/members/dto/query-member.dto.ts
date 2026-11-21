@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { MemberType } from '@prisma/client';
+import { BloodGroup, MembershipType, Role, UserStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -35,15 +35,39 @@ export class QueryMemberDto {
   limit?: number = 10;
 
   @ApiPropertyOptional({
-    description: 'Filter by member type (PIONEER or COMMITTEE)',
-    enum: MemberType,
+    description: 'Filter by member role',
+    enum: Role,
   })
   @IsOptional()
-  @IsEnum(MemberType)
-  type?: MemberType;
+  @IsEnum(Role, { message: 'Invalid role' })
+  role?: Role;
 
   @ApiPropertyOptional({
-    description: 'Filter by key leader status',
+    description: 'Filter by account status',
+    enum: UserStatus,
+  })
+  @IsOptional()
+  @IsEnum(UserStatus, { message: 'Invalid member status' })
+  status?: UserStatus;
+
+  @ApiPropertyOptional({
+    description: 'Filter by membership type',
+    enum: MembershipType,
+  })
+  @IsOptional()
+  @IsEnum(MembershipType, { message: 'Invalid membership type' })
+  membershipType?: MembershipType;
+
+  @ApiPropertyOptional({
+    description: 'Filter by blood group',
+    enum: BloodGroup,
+  })
+  @IsOptional()
+  @IsEnum(BloodGroup, { message: 'Invalid blood group' })
+  bloodGroup?: BloodGroup;
+
+  @ApiPropertyOptional({
+    description: 'Filter by email verification status',
     example: true,
   })
   @IsOptional()
@@ -53,11 +77,12 @@ export class QueryMemberDto {
     return undefined;
   })
   @IsBoolean()
-  isKeyLeader?: boolean;
+  emailVerified?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Search keyword matching names, roles, or villages (EN/BN)',
-    example: 'Emon',
+    description:
+      'Search keyword matching fullName, email, phoneNumber, village, profession, or currentLocation',
+    example: 'Sourav',
   })
   @IsOptional()
   @IsString()
@@ -65,19 +90,21 @@ export class QueryMemberDto {
 
   @ApiPropertyOptional({
     description: 'Field to sort by',
-    enum: ['order', 'createdAt', 'joiningYear', 'nameEn'],
-    default: 'order',
+    enum: ['createdAt', 'updatedAt', 'fullName', 'email', 'role', 'status'],
+    default: 'createdAt',
   })
   @IsOptional()
-  @IsIn(['order', 'createdAt', 'joiningYear', 'nameEn'])
-  sortBy?: 'order' | 'createdAt' | 'joiningYear' | 'nameEn' = 'order';
+  @IsIn(['createdAt', 'updatedAt', 'fullName', 'email', 'role', 'status'])
+  sortBy?:
+    'createdAt' | 'updatedAt' | 'fullName' | 'email' | 'role' | 'status' =
+    'createdAt';
 
   @ApiPropertyOptional({
     description: 'Sort direction',
     enum: ['asc', 'desc'],
-    default: 'asc',
+    default: 'desc',
   })
   @IsOptional()
   @IsIn(['asc', 'desc'])
-  sortOrder?: 'asc' | 'desc' = 'asc';
+  sortOrder?: 'asc' | 'desc' = 'desc';
 }

@@ -4,11 +4,11 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EnvConfig } from '../config/env.schema';
-import { UsersModule } from '../modules/users';
+import { MembersModule } from '../modules/members';
 
 @Module({
   imports: [
-    UsersModule,
+    MembersModule,
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],

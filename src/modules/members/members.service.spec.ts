@@ -1,54 +1,64 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
-import { Member, MemberType } from '@prisma/client';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  AuthProvider,
+  BloodGroup,
+  Member,
+  MembershipType,
+  Role,
+  UserStatus,
+} from '@prisma/client';
 import { MembersService } from './members.service';
 import { MembersRepository } from './members.repository';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 
 describe('MembersService', () => {
   let service: MembersService;
   let repository: {
-    create: jest.Mock;
     findAll: jest.Mock;
     count: jest.Mock;
     findById: jest.Mock;
-    findBySlug: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
   };
 
   const mockMember: Member = {
     id: '64a1b2c3d4e5f67890123456',
-    slug: 'emon',
-    nameEn: 'Md. Emon Hasan',
-    nameBn: 'মোঃ ইমন হাসান',
-    roleEn: 'President',
-    roleBn: 'সভাপতি',
-    image: 'https://example.com/emon.jpg',
-    imagePublicId: null,
-    villageEn: 'Shavarchala',
-    villageBn: 'শাভারচালা',
-    summaryEn: 'Community leader',
-    summaryBn: 'সমাজকর্মী',
-    keyContributionEn: ['Sports club founder'],
-    keyContributionBn: ['ক্রীড়া ক্লাব প্রতিষ্ঠাতা'],
-    mottoEn: 'Unity is strength',
-    mottoBn: 'একতাই বল',
-    joiningYear: '2018',
-    isKeyLeader: true,
-    type: MemberType.COMMITTEE,
-    order: 1,
+    fullName: 'Test Member',
+    fatherName: null,
+    motherName: null,
+    email: 'test@example.com',
+    password: 'hashed_secret_password',
+    profileImage: null,
+    phoneNumber: null,
+    bloodGroup: BloodGroup.UNKNOWN,
+    bio: null,
+    summary: null,
+    status: UserStatus.ACTIVE,
+    role: Role.USER,
+    profession: null,
+    village: null,
+    currentLocation: null,
+    whatsappNumber: null,
+    membershipType: MembershipType.PERMANENT,
+    facebookProfile: null,
+    authProvider: AuthProvider.EMAIL,
+    emailVerified: false,
+    phoneVerified: false,
+    adminVerified: false,
+    googleId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   beforeEach(async () => {
     repository = {
-      create: jest.fn(),
       findAll: jest.fn(),
       count: jest.fn(),
       findById: jest.fn(),
-      findBySlug: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     };
@@ -70,222 +80,372 @@ describe('MembersService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('create', () => {
-    it('should create a member with explicit slug', async () => {
-      repository.findBySlug.mockResolvedValue(null);
-      repository.create.mockResolvedValue(mockMember);
+  describe('getProfile', () => {
+    it('should return sanitized member profile without password', async () => {
+      repository.findById.mockResolvedValue(mockMember);
 
-      const result = await service.create({
-        slug: 'emon',
-        nameEn: 'Md. Emon Hasan',
-        nameBn: 'মোঃ ইমন হাসান',
-        roleEn: 'President',
-        roleBn: 'সভাপতি',
-        villageEn: 'Shavarchala',
-        villageBn: 'শাভারচালা',
-        summaryEn: 'Community leader',
-        summaryBn: 'সমাজকর্মী',
-        joiningYear: '2018',
-      });
+      const profile = await service.getProfile(mockMember.id);
 
-      expect(repository.findBySlug).toHaveBeenCalledWith('emon');
-      expect(repository.create).toHaveBeenCalled();
-      expect(result.slug).toBe('emon');
+      expect(repository.findById).toHaveBeenCalledWith(mockMember.id);
+      expect(profile.id).toBe(mockMember.id);
+      expect(profile.email).toBe(mockMember.email);
+      expect('password' in profile).toBe(false);
     });
 
-    it('should auto-generate slug from nameEn when slug is omitted', async () => {
-      repository.findBySlug.mockResolvedValue(null);
-      repository.create.mockResolvedValue({
+    it('should throw NotFoundException if member does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.getProfile('missing_id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw UnauthorizedException if member is suspended', async () => {
+      repository.findById.mockResolvedValue({
         ...mockMember,
-        slug: 'md-emon-hasan',
+        status: UserStatus.SUSPENDED,
       });
 
-      const result = await service.create({
-        nameEn: 'Md. Emon Hasan',
-        nameBn: 'মোঃ ইমন হাসান',
-        roleEn: 'President',
-        roleBn: 'সভাপতি',
-        villageEn: 'Shavarchala',
-        villageBn: 'শাভারচালা',
-        summaryEn: 'Community leader',
-        summaryBn: 'সমাজকর্মী',
-        joiningYear: '2018',
+      await expect(service.getProfile(mockMember.id)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update allowed profile fields and return sanitized member', async () => {
+      repository.findById.mockResolvedValue(mockMember);
+      const updatedMember: Member = {
+        ...mockMember,
+        fullName: 'Updated Name',
+        village: 'Shavarchala',
+        bloodGroup: BloodGroup.O_POSITIVE,
+        bio: null,
+      };
+      repository.update.mockResolvedValue(updatedMember);
+
+      const result = await service.updateProfile(mockMember.id, {
+        fullName: '  Updated Name  ',
+        village: '  Shavarchala ',
+        bloodGroup: BloodGroup.O_POSITIVE,
+        bio: '   ',
       });
 
-      expect(repository.findBySlug).toHaveBeenCalledWith('md-emon-hasan');
-      expect(result.slug).toBe('md-emon-hasan');
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        fullName: 'Updated Name',
+        village: 'Shavarchala',
+        bloodGroup: BloodGroup.O_POSITIVE,
+        bio: null,
+      });
+      expect(result.fullName).toBe('Updated Name');
+      expect(result.village).toBe('Shavarchala');
+      expect('password' in result).toBe(false);
     });
 
-    it('should throw ConflictException if slug already exists', async () => {
-      repository.findBySlug.mockResolvedValue(mockMember);
+    it('should skip repository update when payload has no fields', async () => {
+      repository.findById.mockResolvedValue(mockMember);
+
+      const result = await service.updateProfile(mockMember.id, {});
+
+      expect(repository.update).not.toHaveBeenCalled();
+      expect(result.id).toBe(mockMember.id);
+      expect('password' in result).toBe(false);
+    });
+
+    it('should safely handle null values in nullable profile fields without throwing', async () => {
+      repository.findById.mockResolvedValue(mockMember);
+      repository.update.mockResolvedValue({
+        ...mockMember,
+        fatherName: null,
+        bio: null,
+      });
+
+      const result = await service.updateProfile(mockMember.id, {
+        fatherName: null as unknown as string,
+        bio: null as unknown as string,
+      });
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        fatherName: null,
+        bio: null,
+      });
+      expect(result.id).toBe(mockMember.id);
+    });
+
+    it('should throw BadRequestException if trimmed fullName is shorter than 2 characters', async () => {
+      repository.findById.mockResolvedValue(mockMember);
 
       await expect(
-        service.create({
-          slug: 'emon',
-          nameEn: 'Md. Emon Hasan',
-          nameBn: 'মোঃ ইমন হাসান',
-          roleEn: 'President',
-          roleBn: 'সভাপতি',
-          villageEn: 'Shavarchala',
-          villageBn: 'শাভারচালা',
-          summaryEn: 'Community leader',
-          summaryBn: 'সমাজকর্মী',
-          joiningYear: '2018',
-        }),
-      ).rejects.toThrow(ConflictException);
+        service.updateProfile(mockMember.id, { fullName: '  A ' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException if member does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.updateProfile('missing_id', { fullName: 'Someone' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw UnauthorizedException if member is suspended', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockMember,
+        status: UserStatus.SUSPENDED,
+      });
+
+      await expect(
+        service.updateProfile(mockMember.id, { fullName: 'Someone' }),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('findAll', () => {
-    it('should return paginated members and metadata', async () => {
-      repository.findAll.mockResolvedValue([mockMember]);
-      repository.count.mockResolvedValue(1);
-
-      const result = await service.findAll({ page: 1, limit: 10 });
-
-      expect(result.members).toHaveLength(1);
-      expect(result.meta.total).toBe(1);
-      expect(result.meta.totalPages).toBe(1);
-      expect(result.meta.page).toBe(1);
-    });
-
-    it('should filter by type and search keyword', async () => {
+    it('should return paginated sanitized members with metadata and apply filters', async () => {
       repository.findAll.mockResolvedValue([mockMember]);
       repository.count.mockResolvedValue(1);
 
       const result = await service.findAll({
-        type: MemberType.COMMITTEE,
-        search: 'Emon',
-        isKeyLeader: true,
+        page: 2,
+        limit: 5,
+        role: Role.USER,
+        status: UserStatus.ACTIVE,
+        emailVerified: false,
+        search: 'Test',
+        sortBy: 'fullName',
+        sortOrder: 'asc',
       });
 
-      expect(repository.findAll).toHaveBeenCalled();
-      expect(repository.count).toHaveBeenCalled();
+      expect(repository.findAll).toHaveBeenCalledWith({
+        where: {
+          role: Role.USER,
+          status: UserStatus.ACTIVE,
+          emailVerified: false,
+          OR: [
+            { fullName: { contains: 'Test', mode: 'insensitive' } },
+            { email: { contains: 'Test', mode: 'insensitive' } },
+            { phoneNumber: { contains: 'Test', mode: 'insensitive' } },
+            { village: { contains: 'Test', mode: 'insensitive' } },
+            { profession: { contains: 'Test', mode: 'insensitive' } },
+            { currentLocation: { contains: 'Test', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ fullName: 'asc' }, { createdAt: 'desc' }],
+        skip: 5,
+        take: 5,
+      });
       expect(result.members).toHaveLength(1);
+      expect('password' in result.members[0]).toBe(false);
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 2,
+        limit: 5,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
     });
   });
 
   describe('findOne', () => {
-    it('should find a member by valid 24-hex ObjectId', async () => {
+    it('should return a sanitized member by ObjectId', async () => {
       repository.findById.mockResolvedValue(mockMember);
 
-      const result = await service.findOne('64a1b2c3d4e5f67890123456');
-      expect(repository.findById).toHaveBeenCalledWith(
-        '64a1b2c3d4e5f67890123456',
-      );
+      const result = await service.findOne(mockMember.id);
+
+      expect(repository.findById).toHaveBeenCalledWith(mockMember.id);
       expect(result.id).toBe(mockMember.id);
+      expect('password' in result).toBe(false);
     });
 
-    it('should find a member by slug if not an ObjectId', async () => {
-      repository.findBySlug.mockResolvedValue(mockMember);
-
-      const result = await service.findOne('emon');
-      expect(repository.findBySlug).toHaveBeenCalledWith('emon');
-      expect(result.slug).toBe('emon');
+    it('should throw BadRequestException for invalid ObjectId', async () => {
+      await expect(service.findOne('not-an-object-id')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
-    it('should throw NotFoundException if member not found', async () => {
-      repository.findBySlug.mockResolvedValue(null);
+    it('should throw NotFoundException if member does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
 
-      await expect(service.findOne('non-existent')).rejects.toThrow(
+      await expect(service.findOne('64a1b2c3d4e5f67890123457')).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe('update', () => {
-    it('should update member data successfully', async () => {
-      repository.findBySlug.mockResolvedValue(mockMember);
-      const updated = { ...mockMember, roleEn: 'Vice President' };
-      repository.update.mockResolvedValue(updated);
+  describe('updateMember', () => {
+    const actorId = '64a1b2c3d4e5f67890123499';
 
-      const result = await service.update('emon', {
-        roleEn: 'Vice President',
+    it('should update admin and profile fields and return sanitized member', async () => {
+      repository.findById.mockResolvedValue(mockMember);
+      const updatedMember: Member = {
+        ...mockMember,
+        fullName: 'Updated Admin Target',
+        role: Role.MODERATOR,
+        status: UserStatus.SUSPENDED,
+        emailVerified: true,
+        phoneVerified: true,
+        adminVerified: true,
+      };
+      repository.update.mockResolvedValue(updatedMember);
+
+      const result = await service.updateMember(
+        mockMember.id,
+        {
+          fullName: ' Updated Admin Target ',
+          role: Role.MODERATOR,
+          status: UserStatus.SUSPENDED,
+          emailVerified: true,
+          phoneVerified: true,
+          adminVerified: true,
+        },
+        actorId,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        fullName: 'Updated Admin Target',
+        role: Role.MODERATOR,
+        status: UserStatus.SUSPENDED,
+        emailVerified: true,
+        phoneVerified: true,
+        adminVerified: true,
       });
-
-      expect(result.roleEn).toBe('Vice President');
-      expect(repository.update).toHaveBeenCalled();
+      expect(result.role).toBe(Role.MODERATOR);
+      expect('password' in result).toBe(false);
     });
 
-    it('should throw ConflictException if updated slug is taken by another member', async () => {
-      repository.findBySlug.mockImplementation((slug: string) => {
-        if (slug === 'emon') return Promise.resolve(mockMember);
-        if (slug === 'new-slug')
-          return Promise.resolve({
-            ...mockMember,
-            id: 'another_id_123456789012',
-            slug: 'new-slug',
-          });
-        return Promise.resolve(null);
+    it('should set adminVerified to false when disabled', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockMember,
+        adminVerified: true,
+      });
+      repository.update.mockResolvedValue({
+        ...mockMember,
+        adminVerified: false,
+      });
+
+      const result = await service.updateMember(
+        mockMember.id,
+        { adminVerified: false },
+        actorId,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        adminVerified: false,
+      });
+      expect(result.adminVerified).toBe(false);
+    });
+
+    it('should safely handle null values when updating member via admin API', async () => {
+      repository.findById.mockResolvedValue(mockMember);
+      repository.update.mockResolvedValue({
+        ...mockMember,
+        profession: null,
+      });
+
+      const result = await service.updateMember(
+        mockMember.id,
+        {
+          profession: null as unknown as string,
+        },
+        actorId,
+      );
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        profession: null,
+      });
+      expect(result.id).toBe(mockMember.id);
+    });
+
+    it('should prevent changing own role or suspending own account', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockMember,
+        role: Role.ADMIN,
       });
 
       await expect(
-        service.update('emon', { slug: 'new-slug' }),
-      ).rejects.toThrow(ConflictException);
+        service.updateMember(mockMember.id, { role: Role.USER }, mockMember.id),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.updateMember(
+          mockMember.id,
+          { status: UserStatus.SUSPENDED },
+          mockMember.id,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
-  describe('delete', () => {
-    it('should delete member successfully', async () => {
-      repository.findBySlug.mockResolvedValue(mockMember);
+  describe('toggleBlockMember', () => {
+    const actorId = '64a1b2c3d4e5f67890123499';
+
+    it('should block an active member by setting status to SUSPENDED', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockMember,
+        status: UserStatus.ACTIVE,
+      });
+      repository.update.mockResolvedValue({
+        ...mockMember,
+        status: UserStatus.SUSPENDED,
+      });
+
+      const result = await service.toggleBlockMember(mockMember.id, actorId);
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        status: UserStatus.SUSPENDED,
+      });
+      expect(result.status).toBe(UserStatus.SUSPENDED);
+      expect('password' in result).toBe(false);
+    });
+
+    it('should unblock a suspended member by setting status to ACTIVE', async () => {
+      repository.findById.mockResolvedValue({
+        ...mockMember,
+        status: UserStatus.SUSPENDED,
+      });
+      repository.update.mockResolvedValue({
+        ...mockMember,
+        status: UserStatus.ACTIVE,
+      });
+
+      const result = await service.toggleBlockMember(mockMember.id, actorId);
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        status: UserStatus.ACTIVE,
+      });
+      expect(result.status).toBe(UserStatus.ACTIVE);
+    });
+
+    it('should throw BadRequestException if admin tries to block themselves', async () => {
+      repository.findById.mockResolvedValue(mockMember);
+
+      await expect(
+        service.toggleBlockMember(mockMember.id, mockMember.id),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('deleteMember', () => {
+    const actorId = '64a1b2c3d4e5f67890123499';
+
+    it('should delete member and return sanitized deleted record', async () => {
+      repository.findById.mockResolvedValue(mockMember);
       repository.delete.mockResolvedValue(mockMember);
 
-      const result = await service.delete('emon');
+      const result = await service.deleteMember(mockMember.id, actorId);
+
       expect(repository.delete).toHaveBeenCalledWith(mockMember.id);
       expect(result.id).toBe(mockMember.id);
+      expect('password' in result).toBe(false);
     });
 
-    it('should delete member and call cloudinary deleteImage if imagePublicId exists', async () => {
-      const memberWithImage = {
-        ...mockMember,
-        imagePublicId: 'members/emon_123',
-      };
-      repository.findBySlug.mockResolvedValue(memberWithImage);
-      repository.delete.mockResolvedValue(memberWithImage);
-      const mockCloudinary = {
-        deleteImage: jest.fn().mockResolvedValue({ deleted: true }),
-      };
+    it('should throw BadRequestException if admin tries to delete themselves', async () => {
+      repository.findById.mockResolvedValue(mockMember);
 
-      const serviceWithCloudinary = new MembersService(
-        repository as unknown as MembersRepository,
-        mockCloudinary as unknown as CloudinaryService,
-      );
-
-      const result = await serviceWithCloudinary.delete('emon');
-      expect(repository.delete).toHaveBeenCalledWith(memberWithImage.id);
-      expect(mockCloudinary.deleteImage).toHaveBeenCalledWith(
-        'members/emon_123',
-      );
-      expect(result.id).toBe(memberWithImage.id);
-    });
-
-    it('should not fail member delete if cloudinary deleteImage throws', async () => {
-      const memberWithImage = {
-        ...mockMember,
-        imagePublicId: 'members/emon_123',
-      };
-      repository.findBySlug.mockResolvedValue(memberWithImage);
-      repository.delete.mockResolvedValue(memberWithImage);
-      const mockCloudinary = {
-        deleteImage: jest.fn().mockRejectedValue(new Error('Cloudinary down')),
-      };
-
-      const serviceWithCloudinary = new MembersService(
-        repository as unknown as MembersRepository,
-        mockCloudinary as unknown as CloudinaryService,
-      );
-
-      const result = await serviceWithCloudinary.delete('emon');
-      expect(repository.delete).toHaveBeenCalledWith(memberWithImage.id);
-      expect(result.id).toBe(memberWithImage.id);
-    });
-
-    it('should throw NotFoundException when deleting non-existent member', async () => {
-      repository.findBySlug.mockResolvedValue(null);
-
-      await expect(service.delete('unknown')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.deleteMember(mockMember.id, mockMember.id),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

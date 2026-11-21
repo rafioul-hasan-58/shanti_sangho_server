@@ -20,7 +20,7 @@ export class HealthController {
       async (): Promise<HealthIndicatorResult> => {
         try {
           // MongoDB compatible ping check
-          await this.prisma.user.findFirst();
+          await this.prisma.member.findFirst();
           return { database: { status: 'up' } };
         } catch (error: any) {
           const errMsg = error instanceof Error ? error.message : String(error);

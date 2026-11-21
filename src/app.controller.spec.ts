@@ -16,7 +16,7 @@ describe('AppController', () => {
         {
           provide: PrismaService,
           useValue: {
-            user: {
+            member: {
               count: jest.fn().mockResolvedValue(1),
             },
           },

@@ -1,113 +1,123 @@
 import {
-  ConflictException,
+  BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
-  Optional,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { Member, MemberType, Prisma } from '@prisma/client';
+import { Member, Prisma, UserStatus } from '@prisma/client';
 import { MembersRepository } from './members.repository';
-import { CreateMemberDto, QueryMemberDto, UpdateMemberDto } from './dto';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+import { QueryMemberDto, UpdateMemberDto, UpdateProfileDto } from './dto';
+import { sanitizeMember } from './members.utils';
+
+const NULLABLE_PROFILE_STRING_FIELDS = [
+  'fatherName',
+  'motherName',
+  'profileImage',
+  'phoneNumber',
+  'bio',
+  'summary',
+  'profession',
+  'village',
+  'currentLocation',
+  'whatsappNumber',
+  'facebookProfile',
+] as const;
 
 @Injectable()
 export class MembersService {
-  private readonly logger = new Logger(MembersService.name);
+  constructor(private readonly membersRepository: MembersRepository) {}
 
-  constructor(
-    private readonly membersRepository: MembersRepository,
-    @Optional()
-    private readonly cloudinaryService?: CloudinaryService,
-  ) {}
-
-  /**
-   * Helper to check if a string is a 24-character hexadecimal MongoDB ObjectId
-   */
+  // Check if a valid MongoDB ObjectId.
   private isValidObjectId(id: string): boolean {
     return /^[0-9a-fA-F]{24}$/.test(id);
   }
 
-  /**
-   * Helper to generate a URL-safe slug from English name
-   */
-  private generateBaseSlug(name: string): string {
-    const slug = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-    return slug || 'member';
+  // Fetch member by ID and throw if ID is invalid or member does not exist.
+  private async findMemberByIdOrThrow(memberId: string): Promise<Member> {
+    const cleanId = memberId.trim();
+    if (!this.isValidObjectId(cleanId)) {
+      throw new BadRequestException('Invalid member ID format');
+    }
+
+    const member = await this.membersRepository.findById(cleanId);
+    if (!member) {
+      throw new NotFoundException(`Member with ID '${cleanId}' was not found`);
+    }
+
+    return member;
   }
 
-  /**
-   * Resolve a unique slug for a new member
-   */
-  private async resolveUniqueSlug(
-    providedSlug?: string,
-    nameEn?: string,
-  ): Promise<string> {
-    if (providedSlug?.trim()) {
-      const normalized = providedSlug
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9-_]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+  // Fetch member by ID and verify the account exists and is not suspended.
+  private async findActiveMemberOrThrow(memberId: string): Promise<Member> {
+    const member = await this.membersRepository.findById(memberId);
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+    if (member.status === UserStatus.SUSPENDED) {
+      throw new UnauthorizedException('Your account has been suspended!');
+    }
+    return member;
+  }
 
-      const existing = await this.membersRepository.findBySlug(normalized);
-      if (existing) {
-        throw new ConflictException(
-          `A member with slug '${normalized}' already exists`,
+  // Map shared profile fields from DTO into a Prisma update payload.
+  private buildProfileUpdateData(
+    dto: UpdateProfileDto,
+  ): Prisma.MemberUpdateInput {
+    const updateData: Prisma.MemberUpdateInput = {};
+
+    if (dto.fullName !== undefined) {
+      if (!dto.fullName || typeof dto.fullName !== 'string') {
+        throw new BadRequestException(
+          'Full name must be at least 2 characters',
         );
       }
-      return normalized;
+      const trimmedName = dto.fullName.trim();
+      if (trimmedName.length < 2) {
+        throw new BadRequestException(
+          'Full name must be at least 2 characters',
+        );
+      }
+      updateData.fullName = trimmedName;
     }
 
-    const baseSlug = this.generateBaseSlug(nameEn || 'member');
-    let candidate = baseSlug;
-    let counter = 1;
-
-    while (await this.membersRepository.findBySlug(candidate)) {
-      candidate = `${baseSlug}-${counter}`;
-      counter++;
+    for (const field of NULLABLE_PROFILE_STRING_FIELDS) {
+      const value = dto[field];
+      if (value !== undefined) {
+        updateData[field] = value ? value.trim() || null : null;
+      }
     }
 
-    return candidate;
+    if (dto.bloodGroup !== undefined) {
+      updateData.bloodGroup = dto.bloodGroup;
+    }
+
+    if (dto.membershipType !== undefined) {
+      updateData.membershipType = dto.membershipType;
+    }
+
+    return updateData;
   }
 
-  /**
-   * Create a new member
-   */
-  async create(dto: CreateMemberDto): Promise<Member> {
-    const slug = await this.resolveUniqueSlug(dto.slug, dto.nameEn);
-
-    return this.membersRepository.create({
-      slug,
-      nameEn: dto.nameEn.trim(),
-      nameBn: dto.nameBn.trim(),
-      roleEn: dto.roleEn.trim(),
-      roleBn: dto.roleBn.trim(),
-      villageEn: dto.villageEn.trim(),
-      villageBn: dto.villageBn.trim(),
-      summaryEn: dto.summaryEn.trim(),
-      summaryBn: dto.summaryBn.trim(),
-      image: dto.image?.trim() || null,
-      imagePublicId: dto.imagePublicId?.trim() || null,
-      joiningYear: dto.joiningYear.trim(),
-      keyContributionEn: dto.keyContributionEn || [],
-      keyContributionBn: dto.keyContributionBn || [],
-      mottoEn: dto.mottoEn?.trim() || null,
-      mottoBn: dto.mottoBn?.trim() || null,
-      isKeyLeader: dto.isKeyLeader ?? false,
-      type: dto.type || MemberType.COMMITTEE,
-      order: dto.order ?? 0,
-    });
+  // Get the authenticated member's profile.
+  async getProfile(memberId: string) {
+    const member = await this.findActiveMemberOrThrow(memberId);
+    return sanitizeMember(member);
   }
 
-  /**
-   * Get all members with filters and pagination
-   */
+  // Update the authenticated member's profile fields.
+  async updateProfile(memberId: string, dto: UpdateProfileDto) {
+    const existing = await this.findActiveMemberOrThrow(memberId);
+    const updateData = this.buildProfileUpdateData(dto);
+
+    if (Object.keys(updateData).length === 0) {
+      return sanitizeMember(existing);
+    }
+
+    const updated = await this.membersRepository.update(memberId, updateData);
+    return sanitizeMember(updated);
+  }
+
+  // Get all members by filter and pagination
   async findAll(query: QueryMemberDto) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 10;
@@ -116,29 +126,41 @@ export class MembersService {
 
     const where: Prisma.MemberWhereInput = {};
 
-    if (query.type) {
-      where.type = query.type;
+    if (query.role) {
+      where.role = query.role;
     }
-
-    if (typeof query.isKeyLeader === 'boolean') {
-      where.isKeyLeader = query.isKeyLeader;
+    if (query.status) {
+      where.status = query.status;
+    }
+    if (query.membershipType) {
+      where.membershipType = query.membershipType;
+    }
+    if (query.bloodGroup) {
+      where.bloodGroup = query.bloodGroup;
+    }
+    if (typeof query.emailVerified === 'boolean') {
+      where.emailVerified = query.emailVerified;
     }
 
     if (query.search?.trim()) {
       const term = query.search.trim();
       where.OR = [
-        { nameEn: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { nameBn: { contains: term } },
-        { roleEn: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { roleBn: { contains: term } },
-        { villageEn: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { villageBn: { contains: term } },
-        { slug: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        { fullName: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        { email: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        { phoneNumber: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        { village: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        { profession: { contains: term, mode: Prisma.QueryMode.insensitive } },
+        {
+          currentLocation: {
+            contains: term,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
       ];
     }
 
-    const sortBy = query.sortBy || 'order';
-    const sortOrder = query.sortOrder || 'asc';
+    const sortBy = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
     const orderBy: Prisma.MemberOrderByWithRelationInput[] = [
       { [sortBy]: sortOrder },
     ];
@@ -154,7 +176,7 @@ export class MembersService {
     const totalPages = Math.ceil(total / limit) || 1;
 
     return {
-      members,
+      members: members.map(sanitizeMember),
       meta: {
         total,
         page,
@@ -166,113 +188,89 @@ export class MembersService {
     };
   }
 
-  /**
-   * Get a single member by MongoDB ObjectId or Slug
-   */
-  async findOne(identifier: string): Promise<Member> {
-    const cleanId = identifier.trim();
-    let member: Member | null = null;
+  // Get member details by admin
+  async findOne(memberId: string) {
+    const member = await this.findMemberByIdOrThrow(memberId);
+    return sanitizeMember(member);
+  }
 
-    if (this.isValidObjectId(cleanId)) {
-      member = await this.membersRepository.findById(cleanId);
+  // Update member by admin
+  async updateMember(memberId: string, dto: UpdateMemberDto, actorId?: string) {
+    const existing = await this.findMemberByIdOrThrow(memberId);
+    const updateData = this.buildProfileUpdateData(dto);
+
+    if (dto.role !== undefined) {
+      if (actorId && existing.id === actorId && dto.role !== existing.role) {
+        throw new BadRequestException('You cannot change your own role');
+      }
+      updateData.role = dto.role;
     }
 
-    if (!member) {
-      member = await this.membersRepository.findBySlug(cleanId);
+    if (dto.status !== undefined) {
+      if (
+        actorId &&
+        existing.id === actorId &&
+        dto.status === UserStatus.SUSPENDED
+      ) {
+        throw new BadRequestException('You cannot suspend your own account');
+      }
+      updateData.status = dto.status;
     }
 
-    if (!member) {
-      throw new NotFoundException(
-        `Member with identifier '${cleanId}' was not found`,
+    if (dto.emailVerified !== undefined) {
+      updateData.emailVerified = dto.emailVerified;
+    }
+
+    if (dto.phoneVerified !== undefined) {
+      updateData.phoneVerified = dto.phoneVerified;
+    }
+
+    if (dto.adminVerified !== undefined) {
+      updateData.adminVerified = dto.adminVerified;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return sanitizeMember(existing);
+    }
+
+    const updated = await this.membersRepository.update(
+      existing.id,
+      updateData,
+    );
+    return sanitizeMember(updated);
+  }
+
+  // Toggle a member's blocked status between SUSPENDED and ACTIVE (Admin).
+  async toggleBlockMember(memberId: string, actorId?: string) {
+    const existing = await this.findMemberByIdOrThrow(memberId);
+
+    if (actorId && existing.id === actorId) {
+      throw new BadRequestException(
+        'You cannot block or unblock your own account',
       );
     }
 
-    return member;
+    const nextStatus =
+      existing.status === UserStatus.SUSPENDED
+        ? UserStatus.ACTIVE
+        : UserStatus.SUSPENDED;
+
+    const updated = await this.membersRepository.update(existing.id, {
+      status: nextStatus,
+    });
+
+    return sanitizeMember(updated);
   }
 
-  /**
-   * Update an existing member by ID or Slug
-   */
-  async update(identifier: string, dto: UpdateMemberDto): Promise<Member> {
-    const existing = await this.findOne(identifier);
+  // Delete member by admin
+  async deleteMember(memberId: string, actorId?: string) {
+    const existing = await this.findMemberByIdOrThrow(memberId);
 
-    let newSlug = existing.slug;
-    if (dto.slug?.trim()) {
-      const normalized = dto.slug
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9-_]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-
-      if (normalized !== existing.slug) {
-        const conflict = await this.membersRepository.findBySlug(normalized);
-        if (conflict && conflict.id !== existing.id) {
-          throw new ConflictException(
-            `A member with slug '${normalized}' already exists`,
-          );
-        }
-        newSlug = normalized;
-      }
+    if (actorId && existing.id === actorId) {
+      throw new BadRequestException('You cannot delete your own account');
     }
 
-    const updateData: Prisma.MemberUpdateInput = {
-      ...(dto.nameEn !== undefined && { nameEn: dto.nameEn?.trim() }),
-      ...(dto.nameBn !== undefined && { nameBn: dto.nameBn?.trim() }),
-      ...(dto.roleEn !== undefined && { roleEn: dto.roleEn?.trim() }),
-      ...(dto.roleBn !== undefined && { roleBn: dto.roleBn?.trim() }),
-      ...(dto.villageEn !== undefined && { villageEn: dto.villageEn?.trim() }),
-      ...(dto.villageBn !== undefined && { villageBn: dto.villageBn?.trim() }),
-      ...(dto.summaryEn !== undefined && { summaryEn: dto.summaryEn?.trim() }),
-      ...(dto.summaryBn !== undefined && { summaryBn: dto.summaryBn?.trim() }),
-      ...(dto.joiningYear !== undefined && {
-        joiningYear: dto.joiningYear?.trim(),
-      }),
-      ...(dto.image !== undefined && {
-        image: dto.image?.trim() || null,
-      }),
-      ...(dto.imagePublicId !== undefined && {
-        imagePublicId: dto.imagePublicId?.trim() || null,
-      }),
-      ...(dto.mottoEn !== undefined && {
-        mottoEn: dto.mottoEn?.trim() || null,
-      }),
-      ...(dto.mottoBn !== undefined && {
-        mottoBn: dto.mottoBn?.trim() || null,
-      }),
-      ...(dto.keyContributionEn !== undefined && {
-        keyContributionEn: dto.keyContributionEn,
-      }),
-      ...(dto.keyContributionBn !== undefined && {
-        keyContributionBn: dto.keyContributionBn,
-      }),
-      ...(dto.isKeyLeader !== undefined && { isKeyLeader: dto.isKeyLeader }),
-      ...(dto.type !== undefined && { type: dto.type }),
-      ...(dto.order !== undefined && { order: dto.order }),
-      slug: newSlug,
-    };
-
-    return this.membersRepository.update(existing.id, updateData);
-  }
-
-  /**
-   * Delete a member by ID or Slug
-   */
-  async delete(identifier: string): Promise<Member> {
-    const existing = await this.findOne(identifier);
     const deleted = await this.membersRepository.delete(existing.id);
-
-    if (existing.imagePublicId && this.cloudinaryService) {
-      try {
-        await this.cloudinaryService.deleteImage(existing.imagePublicId);
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        this.logger.warn(
-          `Failed to delete Cloudinary image '${existing.imagePublicId}' for member '${existing.id}': ${msg}`,
-        );
-      }
-    }
-
-    return deleted;
+    return sanitizeMember(deleted);
   }
 }

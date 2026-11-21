@@ -13,38 +13,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                String         @id @default(auto()) @map("_id") @db.ObjectId
-  fullName          String
-  fatherName        String?
-  motherName        String?
-  email             String         @unique
-  password          String
-  profileImage      String?
-  phoneNumber       String?
-  bloodGroup        BloodGroup     @default(UNKNOWN)
-  bio               String?
-  summary           String?
-  status            UserStatus     @default(ACTIVE)
-  role              Role           @default(USER)
-  profession        String?
-  village           String?
-  currentLocation   String?
-  whatsappNumber    String?
-  membershipType    MembershipType @default(PERMANENT)
-  facebookProfile   String?
-  authProvider      AuthProvider   @default(EMAIL)
-  emailVerified     Boolean        @default(false)
-  phoneVerified     Boolean        @default(false)
-  adminVerified     Boolean        @default(false)
-  googleId          String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+model Member {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  fullName        String
+  fatherName      String?
+  motherName      String?
+  email           String         @unique
+  password        String
+  profileImage    String?
+  phoneNumber     String?
+  bloodGroup      BloodGroup     @default(UNKNOWN)
+  bio             String?
+  summary         String?
+  status          UserStatus     @default(ACTIVE)
+  role            Role           @default(USER)
+  profession      String?
+  village         String?
+  currentLocation String?
+  whatsappNumber  String?
+  membershipType  MembershipType @default(PERMANENT)
+  facebookProfile String?
+  authProvider    AuthProvider   @default(EMAIL)
+  emailVerified   Boolean        @default(false)
+  phoneVerified   Boolean        @default(false)
+  adminVerified   Boolean        @default(false)
+  googleId        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  chatSessions          ChatSession[]
+  contributionsGiven    Contribution[] @relation("ContributionGiver")
+  contributionsReceived Contribution[] @relation("ContributionReceiver")
+  expensesSpent         Expense[]      @relation("ExpenseSpender")
+
+  @@map("User")
 }
 
-model Member {
-  id                String     @id @default(auto()) @map("_id") @db.ObjectId
-  slug              String     @unique // your old "emon" id
+model Executive {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  slug              String        @unique // old "emon" id
   nameEn            String
   nameBn            String
   roleEn            String
@@ -55,17 +62,18 @@ model Member {
   villageBn         String // URL or path
   summaryEn         String
   summaryBn         String
-  keyContributionEn String[]   @default([])
-  keyContributionBn String[]   @default([])
+  keyContributionEn String[]      @default([])
+  keyContributionBn String[]      @default([])
   mottoEn           String?
   mottoBn           String?
   joiningYear       String
-  isKeyLeader       Boolean    @default(false)
-  type              MemberType @default(COMMITTEE)
+  isKeyLeader       Boolean       @default(false)
+  type              ExecutiveType @default(COMMITTEE)
   order             Int           @default(0) // controls display order
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-  chatSessions      ChatSession[]
+
+  @@map("Member")
 }
 
 model ChatSession {
@@ -96,7 +104,74 @@ model ClubInfo {
   updatedAt DateTime @updatedAt
 }
 
-enum MemberType {
+model Fund {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  name          String         @unique
+  category      FundCategory
+  isActive      Boolean        @default(true)
+  contributions Contribution[]
+  expenses      Expense[]
+}
+
+model Contribution {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  fundId String @db.ObjectId
+  fund   Fund   @relation(fields: [fundId], references: [id])
+
+  amount     Int 
+  method     ReceiveMethod 
+  receivedAt DateTime 
+  note       String?
+  reference  String?
+
+  giverMemberId String? @db.ObjectId
+  giverMember   Member? @relation("ContributionGiver", fields: [giverMemberId], references: [id])
+  giverName     String?
+
+  receivedById String @db.ObjectId
+  receivedBy   Member @relation("ContributionReceiver", fields: [receivedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([fundId, receivedAt])
+}
+
+model Expense {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  fundId String @db.ObjectId
+  fund   Fund   @relation(fields: [fundId], references: [id])
+  amount     Int
+  spentAt    DateTime
+  spentOn    String
+  note       String?
+  receiptUrl String?
+
+  spentById String? @db.ObjectId
+  spentBy   Member? @relation("ExpenseSpender", fields: [spentById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([fundId, spentAt])
+}
+
+enum ReceiveMethod {
+  CASH
+  BANK
+  BKASH
+  NAGAD
+  OTHER
+}
+
+enum FundCategory {
+  GPL
+  SPORTS
+  OWAJ
+  IFTER_MAHFIL
+  FOOTBALL
+  OTHERS
+}
+
+enum ExecutiveType {
   PIONEER
   COMMITTEE
   ADMIN

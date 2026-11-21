@@ -32,14 +32,14 @@ async function main() {
   console.log('🌱 Starting database seed...');
   console.log(`Target Super Admin: ${superAdminEmail} (${superAdminName})`);
 
-  const existingSuperAdmin = await prisma.user.findUnique({
+  const existingSuperAdmin = await prisma.member.findUnique({
     where: { email: superAdminEmail },
   });
 
   const hashedPassword = await bcrypt.hash(superAdminPassword, 12);
 
   if (existingSuperAdmin) {
-    const updated = await prisma.user.update({
+    const updated = await prisma.member.update({
       where: { email: superAdminEmail },
       data: {
         fullName: superAdminName,
@@ -55,7 +55,7 @@ async function main() {
       `✅ Super Admin user already exists (${superAdminEmail}). Updated credentials and verified role: ${updated.role}`,
     );
   } else {
-    const created = await prisma.user.create({
+    const created = await prisma.member.create({
       data: {
         fullName: superAdminName,
         email: superAdminEmail,
