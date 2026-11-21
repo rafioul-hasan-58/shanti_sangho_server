@@ -8,6 +8,7 @@ import {
   AuthProvider,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedClubInfo } from './seed-club-info';
 
 const prisma = new PrismaClient();
 
@@ -72,6 +73,8 @@ async function main() {
       `✅ Super Admin user created successfully: ${created.email} (Role: ${created.role})`,
     );
   }
+
+  await seedClubInfo(prisma);
 
   console.log('🌱 Database seed completed successfully!');
 }

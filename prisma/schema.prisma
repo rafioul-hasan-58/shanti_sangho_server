@@ -62,9 +62,38 @@ model Member {
   joiningYear       String
   isKeyLeader       Boolean    @default(false)
   type              MemberType @default(COMMITTEE)
-  order             Int        @default(0) // controls display order
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  order             Int           @default(0) // controls display order
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  chatSessions      ChatSession[]
+}
+
+model ChatSession {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  memberId  String?       @db.ObjectId
+  member    Member?       @relation(fields: [memberId], references: [id])
+  createdAt DateTime      @default(now())
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId String      @db.ObjectId
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // user | assistant | tool
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model ClubInfo {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  category  String
+  title     String
+  content   String
+  tags      String[] @default([])
+  updatedAt DateTime @updatedAt
 }
 
 enum MemberType {
