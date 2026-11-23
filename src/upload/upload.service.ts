@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   CloudinaryService,
   CloudinaryUploadResult,
-} from '../cloudinary/cloudinary.service';
+} from '../infrastructure/cloudinary/cloudinary.service';
 import { validateProfileImageFile } from './upload.validator';
 
 @Injectable()

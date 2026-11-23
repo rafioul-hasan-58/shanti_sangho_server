@@ -3,8 +3,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EnvConfig } from '../config/env.schema';
-import { MembersModule } from '../modules/members';
+import { EnvConfig } from '../../config/env.schema';
+import { MembersModule } from '../../modules/members';
 
 @Module({
   imports: [

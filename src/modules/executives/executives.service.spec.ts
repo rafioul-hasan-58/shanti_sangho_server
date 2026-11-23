@@ -3,7 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Executive, ExecutiveType } from '@prisma/client';
 import { ExecutivesService } from './executives.service';
 import { ExecutivesRepository } from './executives.repository';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+import { CloudinaryService } from '../../infrastructure/cloudinary/cloudinary.service';
 
 describe('ExecutivesService', () => {
   let service: ExecutivesService;

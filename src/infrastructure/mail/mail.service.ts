@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
-import { EnvConfig } from '../config/env.schema';
+import { EnvConfig } from '../../config/env.schema';
 
 @Injectable()
 export class MailService {

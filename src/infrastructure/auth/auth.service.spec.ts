@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { MembersRepository } from '../modules/members/members.repository';
+import { MembersRepository } from '../../modules/members/members.repository';
 import { MailService } from '../mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
 import {

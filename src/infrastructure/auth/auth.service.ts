@@ -19,8 +19,8 @@ import {
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { MembersRepository } from '../modules/members/members.repository';
-import { sanitizeMember } from '../modules/members/members.utils';
+import { MembersRepository } from '../../modules/members/members.repository';
+import { sanitizeMember } from '../../modules/members/members.utils';
 import { MailService } from '../mail/mail.service';
 import {
   RegisterDto,
@@ -30,7 +30,7 @@ import {
   VerifyOtpDto,
   ResetPasswordDto,
 } from './dto';
-import { EnvConfig } from '../config/env.schema';
+import { EnvConfig } from '../../config/env.schema';
 
 const OTP_EXPIRY_MINUTES = 10;
 const OTP_EXPIRY_MS = OTP_EXPIRY_MINUTES * 60 * 1000;

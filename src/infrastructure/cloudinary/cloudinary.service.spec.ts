@@ -2,7 +2,7 @@ import { BadGatewayException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryService } from './cloudinary.service';
-import { EnvConfig } from '../config/env.schema';
+import { EnvConfig } from '../../config/env.schema';
 
 jest.mock('cloudinary', () => ({
   v2: {

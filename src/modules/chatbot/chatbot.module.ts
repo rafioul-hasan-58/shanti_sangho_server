@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ClubInfoModule } from '../../club-info/club-info.module';
+import { ClubInfoModule } from '../../infrastructure/club-info/club-info.module';
 import { MembersModule } from '../members';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { ChatHistoryService } from './chat-history.service';

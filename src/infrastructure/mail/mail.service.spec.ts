@@ -2,7 +2,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
 import { MailService } from './mail.service';
-import { EnvConfig } from '../config/env.schema';
+import { EnvConfig } from '../../config/env.schema';
 
 jest.mock('nodemailer', () => ({
   __esModule: true,

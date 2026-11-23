@@ -1,6 +1,6 @@
 import { Readable } from 'stream';
 import { UploadService } from './upload.service';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CloudinaryService } from '../infrastructure/cloudinary/cloudinary.service';
 
 describe('UploadService', () => {
   let service: UploadService;

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { CloudinaryModule } from '../infrastructure/cloudinary/cloudinary.module';
 import { UploadController } from './upload.controller';
 import { UploadService } from './upload.service';
 import { UploadRateLimitGuard } from './guards/upload-rate-limit.guard';

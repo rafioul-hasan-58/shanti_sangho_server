@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ClubInfoService } from '../../../club-info/club-info.service';
+import { ClubInfoService } from '../../../infrastructure/club-info/club-info.service';
 import { SearchClubInfoTool } from './search-club-info.tool';
 
 describe('SearchClubInfoTool', () => {

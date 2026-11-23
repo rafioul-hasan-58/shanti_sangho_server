@@ -12,7 +12,7 @@ import {
   QueryExecutiveDto,
   UpdateExecutiveDto,
 } from './dto';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+import { CloudinaryService } from '../../infrastructure/cloudinary/cloudinary.service';
 
 @Injectable()
 export class ExecutivesService {

@@ -10,7 +10,7 @@ import {
   UploadApiErrorResponse,
   UploadApiResponse,
 } from 'cloudinary';
-import { EnvConfig } from '../config/env.schema';
+import { EnvConfig } from '../../config/env.schema';
 
 export interface CloudinaryUploadResult {
   url: string;
