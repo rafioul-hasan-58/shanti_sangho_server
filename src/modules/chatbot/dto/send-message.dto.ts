@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, Length, Matches } from 'class-validator';
-import { MAX_MESSAGE_LENGTH } from '../chat.constants';
+import { MAX_MESSAGE_LENGTH } from '../chatbot.constants';
 
 export class SendMessageDto {
   @ApiProperty({

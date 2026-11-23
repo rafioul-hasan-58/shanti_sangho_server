@@ -12,18 +12,18 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
-import { ChatService } from './chat.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
+import { ChatbotService } from './chatbot.service';
 import { ChatResponseDto, SendMessageDto } from './dto';
 import { ChatThrottlerGuard } from './guards/chat-throttler.guard';
 import { AuthUser } from './tools/tool-context';
 
-@ApiTags('Chat')
-@Controller('chat')
+@ApiTags('Chatbot')
+@Controller(['chatbot', 'chat'])
 @UseGuards(OptionalJwtAuthGuard, ChatThrottlerGuard)
-export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+export class ChatbotController {
+  constructor(private readonly chatbotService: ChatbotService) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -64,6 +64,8 @@ export class ChatController {
     @Body() dto: SendMessageDto,
     @CurrentUser() user?: AuthUser | null,
   ): Promise<ChatResponseDto> {
-    return this.chatService.sendMessage(dto, user ?? null);
+    return this.chatbotService.sendMessage(dto, user ?? null);
   }
 }
+
+export { ChatbotController as ChatController };

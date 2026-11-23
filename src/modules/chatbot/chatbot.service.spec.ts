@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FALLBACK_MESSAGE } from './chat.constants';
+import { FALLBACK_MESSAGE } from './chatbot.constants';
 import { ChatHistoryService } from './chat-history.service';
-import { ChatService } from './chat.service';
+import { ChatbotService } from './chatbot.service';
 import { LlmService } from './llm/llm.service';
 import { ToolsRegistry } from './tools/tools.registry';
 
-describe('ChatService', () => {
-  let service: ChatService;
+describe('ChatbotService', () => {
+  let service: ChatbotService;
   let chatHistoryService: {
     findOrCreateSession: jest.Mock;
     saveMessage: jest.Mock;
@@ -59,7 +59,7 @@ describe('ChatService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ChatService,
+        ChatbotService,
         {
           provide: ChatHistoryService,
           useValue: chatHistoryService,
@@ -75,7 +75,7 @@ describe('ChatService', () => {
       ],
     }).compile();
 
-    service = module.get<ChatService>(ChatService);
+    service = module.get<ChatbotService>(ChatbotService);
   });
 
   it('should be defined', () => {

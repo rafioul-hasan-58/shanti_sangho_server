@@ -4,7 +4,7 @@ import {
   FALLBACK_MESSAGE,
   MAX_HISTORY,
   MAX_TOOL_ROUNDS,
-} from './chat.constants';
+} from './chatbot.constants';
 import { ChatHistoryService } from './chat-history.service';
 import { ChatResponseDto, SendMessageDto } from './dto';
 import { LlmService } from './llm/llm.service';
@@ -13,8 +13,8 @@ import { AuthUser, ToolContext } from './tools/tool-context';
 import { ToolsRegistry } from './tools/tools.registry';
 
 @Injectable()
-export class ChatService {
-  private readonly logger = new Logger(ChatService.name);
+export class ChatbotService {
+  private readonly logger = new Logger(ChatbotService.name);
 
   constructor(
     private readonly chatHistoryService: ChatHistoryService,
@@ -139,3 +139,5 @@ export class ChatService {
     };
   }
 }
+
+export { ChatbotService as ChatService };

@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ChatMessage, ChatSession } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { MAX_HISTORY } from './chat.constants';
+import { PrismaService } from '../../prisma/prisma.service';
+import { MAX_HISTORY } from './chatbot.constants';
 import { AuthUser } from './tools/tool-context';
 
 @Injectable()

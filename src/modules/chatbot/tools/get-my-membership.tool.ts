@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-import { MembersService } from '../../modules/members/members.service';
+import { MembersService } from '../../members/members.service';
 import { ChatTool } from './chat-tool.interface';
 import { ToolContext } from './tool-context';
 

@@ -7,8 +7,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
-import { ChatHistoryService } from '../src/chat/chat-history.service';
-import { LlmService } from '../src/chat/llm/llm.service';
+import { ChatHistoryService } from '../src/modules/chatbot/chat-history.service';
+import { LlmService } from '../src/modules/chatbot/llm/llm.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
 
@@ -128,6 +128,30 @@ describe('ChatController (e2e)', () => {
     expect(body.statusCode).toBe(200);
     expect(body.data.sessionId).toBe('64a1b2c3d4e5f67890123456');
     expect(body.data.message).toContain('6:00 AM to 10:00 PM');
+    expect(body.data.role).toBe('assistant');
+  });
+
+  it('/api/v1/chatbot (POST) - Supports new chatbot route path', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/chatbot')
+      .send({
+        message: 'What are the opening hours of the club?',
+      })
+      .expect(200);
+
+    const body = res.body as {
+      success: boolean;
+      statusCode: number;
+      data: {
+        sessionId: string;
+        message: string;
+        role: string;
+      };
+    };
+
+    expect(body.success).toBe(true);
+    expect(body.statusCode).toBe(200);
+    expect(body.data.sessionId).toBe('64a1b2c3d4e5f67890123456');
     expect(body.data.role).toBe('assistant');
   });
 

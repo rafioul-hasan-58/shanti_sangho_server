@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BloodGroup, MembershipType, UserStatus } from '@prisma/client';
-import { MembersService } from '../../modules/members/members.service';
+import { MembersService } from '../../members/members.service';
 import { GetMyMembershipTool } from './get-my-membership.tool';
 
 describe('GetMyMembershipTool', () => {

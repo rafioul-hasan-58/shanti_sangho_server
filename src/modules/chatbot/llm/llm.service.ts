@@ -11,7 +11,7 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
 } from 'openai/resources/chat/completions';
-import { EnvConfig } from '../../config/env.schema';
+import { EnvConfig } from '../../../config/env.schema';
 import {
   DEFAULT_LLM_TIMEOUT_MS,
   DEFAULT_MAX_TOKENS,

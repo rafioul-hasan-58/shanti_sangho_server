@@ -20,3 +20,5 @@ export class ChatResponseDto {
   })
   role: 'assistant';
 }
+
+export { ChatResponseDto as ChatbotResponseDto };

@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ClubInfoModule } from '../club-info/club-info.module';
-import { MembersModule } from '../modules/members/members.module';
-import { PrismaModule } from '../prisma/prisma.module';
+import { ClubInfoModule } from '../../club-info/club-info.module';
+import { MembersModule } from '../members';
+import { PrismaModule } from '../../prisma/prisma.module';
 import { ChatHistoryService } from './chat-history.service';
-import { ChatController } from './chat.controller';
-import { ChatService } from './chat.service';
+import { ChatbotController } from './chatbot.controller';
+import { ChatbotService } from './chatbot.service';
 import { ChatThrottlerGuard } from './guards/chat-throttler.guard';
 import { LlmClientProvider } from './llm/llm.provider';
 import { LlmService } from './llm/llm.service';
@@ -35,7 +35,7 @@ import { ToolsRegistry } from './tools/tools.registry';
       },
     ]),
   ],
-  controllers: [ChatController],
+  controllers: [ChatbotController],
   providers: [
     LlmClientProvider,
     LlmService,
@@ -43,9 +43,11 @@ import { ToolsRegistry } from './tools/tools.registry';
     SearchClubInfoTool,
     ToolsRegistry,
     ChatHistoryService,
-    ChatService,
+    ChatbotService,
     ChatThrottlerGuard,
   ],
-  exports: [ChatService],
+  exports: [ChatbotService],
 })
-export class ChatModule {}
+export class ChatbotModule {}
+
+export { ChatbotModule as ChatModule };

@@ -82,7 +82,7 @@ $ npm run seed
 ```
 
 ### How to Add a New Tool
-1. Create a new file in `src/chat/tools/<your-tool-name>.tool.ts` implementing `ChatTool`:
+1. Create a new file in `src/modules/chatbot/tools/<your-tool-name>.tool.ts` implementing `ChatTool`:
    ```typescript
    import { Injectable } from '@nestjs/common';
    import type { ChatCompletionTool } from 'openai/resources/chat/completions';
@@ -115,9 +115,9 @@ $ npm run seed
      }
    }
    ```
-2. Add your tool to `providers` in `src/chat/chat.module.ts`.
-3. Inject the tool in `ToolsRegistry` (`src/chat/tools/tools.registry.ts`) and call `this.registerTool(this.myCustomTool)`.
-4. Done! `ChatService` will automatically advertise and execute the new tool without modification.
+2. Add your tool to `providers` in `src/modules/chatbot/chatbot.module.ts`.
+3. Inject the tool in `ToolsRegistry` (`src/modules/chatbot/tools/tools.registry.ts`) and call `this.registerTool(this.myCustomTool)`.
+4. Done! `ChatbotService` will automatically advertise and execute the new tool without modification.
 
 ### Rate Limiting
 - Anonymous users: 10 requests per minute (keyed by IP).

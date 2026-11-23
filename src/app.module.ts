@@ -15,7 +15,7 @@ import { HealthModule } from './health/health.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { UploadModule } from './upload/upload.module';
 import { ClubInfoModule } from './club-info/club-info.module';
-import { ChatModule } from './chat/chat.module';
+import { ChatbotModule } from './modules/chatbot';
 
 @Module({
   imports: [
@@ -35,7 +35,7 @@ import { ChatModule } from './chat/chat.module';
     CloudinaryModule,
     UploadModule,
     ClubInfoModule,
-    ChatModule,
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [AppService],

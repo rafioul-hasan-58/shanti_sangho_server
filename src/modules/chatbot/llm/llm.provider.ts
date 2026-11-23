@@ -1,7 +1,7 @@
 import { Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { EnvConfig } from '../../config/env.schema';
+import { EnvConfig } from '../../../config/env.schema';
 import { LLM_CLIENT } from './llm.constants';
 
 export const LlmClientProvider: Provider = {
