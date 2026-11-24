@@ -8,7 +8,22 @@ import { Member, Prisma, UserStatus } from '@prisma/client';
 import { MembersRepository } from './members.repository';
 import { QueryMemberDto, UpdateMemberDto, UpdateProfileDto } from './dto';
 import { sanitizeMember } from './members.utils';
-import { QueryBuilder } from '../../infrastructure/builder/QueryBuilder';
+import {
+  QueryBuilder,
+  QueryMetaResult,
+} from '../../infrastructure/builder/QueryBuilder';
+
+export interface PaginatedMembersResponse {
+  members: Array<Omit<Member, 'password'>>;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
 
 const NULLABLE_PROFILE_STRING_FIELDS = [
   'fatherName',
@@ -119,11 +134,8 @@ export class MembersService {
   }
 
   // Get all members by filter and pagination
-  async findAll(query: QueryMemberDto) {
-    const memberQuery = new QueryBuilder<Member>(
-      this.membersRepository,
-      query as Record<string, unknown>,
-    )
+  async findAll(query: QueryMemberDto): Promise<PaginatedMembersResponse> {
+    const memberQuery = new QueryBuilder<Member>(this.membersRepository, query)
       .search([
         'fullName',
         'email',
@@ -136,10 +148,9 @@ export class MembersService {
       .sort()
       .paginate();
 
-    const [members, countMeta] = await Promise.all([
-      memberQuery.execute(),
-      memberQuery.countTotal(),
-    ]);
+    const [members, countMeta] = await Promise.all<
+      [Promise<Member[]>, Promise<QueryMetaResult>]
+    >([memberQuery.execute(), memberQuery.countTotal()]);
 
     const totalPages = countMeta.totalPage || 1;
 

@@ -1,20 +1,31 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+
+export interface QueryModelDelegate<T = any> {
+  findMany?(args?: any): Promise<T[]>;
+  findAll?(args?: any): Promise<T[]>;
+  count(args?: any): Promise<number>;
+}
+
+export interface QueryMetaResult {
+  page: number;
+  limit: number;
+  total: number;
+  totalPage: number;
+}
 
 // Query Builder in Prisma
 export class QueryBuilder<T = any> {
-  private model: any;
-  private query: Record<string, unknown>;
-  private prismaQuery: any = {}; // Define as any for flexibility
+  private readonly model: QueryModelDelegate<T>;
+  private readonly query: Record<string, any>;
+  private prismaQuery: Record<string, any> = {};
 
-  constructor(model: any, query: Record<string, unknown>) {
-    this.model = model; // Prisma model instance
-    this.query = query; // Query params
+  constructor(model: QueryModelDelegate<T>, query: Record<string, any> = {}) {
+    this.model = model;
+    this.query = query;
   }
 
-  getPrismaQuery(): any {
+  getPrismaQuery(): Record<string, any> {
     return this.prismaQuery;
   }
 
@@ -199,14 +210,9 @@ export class QueryBuilder<T = any> {
   }
 
   // Count Total
-  async countTotal(): Promise<{
-    page: number;
-    limit: number;
-    total: number;
-    totalPage: number;
-  }> {
+  async countTotal(): Promise<QueryMetaResult> {
     const rawTotal: unknown = await this.model.count({
-      where: this.prismaQuery.where,
+      where: this.prismaQuery.where as Record<string, any> | undefined,
     });
     const total =
       typeof rawTotal === 'number' ? rawTotal : Number(rawTotal) || 0;
