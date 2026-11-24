@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 // Query Builder in Prisma
 export class QueryBuilder<T = any> {
   private model: any;
@@ -7,6 +12,10 @@ export class QueryBuilder<T = any> {
   constructor(model: any, query: Record<string, unknown>) {
     this.model = model; // Prisma model instance
     this.query = query; // Query params
+  }
+
+  getPrismaQuery(): any {
+    return this.prismaQuery;
   }
 
   // Search
@@ -152,7 +161,7 @@ export class QueryBuilder<T = any> {
 
   // **Execute Query*/
   async execute(): Promise<T[]> {
-    return this.model.findMany(this.prismaQuery);
+    return await this.model.findMany(this.prismaQuery);
   }
 
   // Count Total

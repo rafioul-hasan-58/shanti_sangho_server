@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import { QueryBuilder } from './QueryBuilder';
 
 describe('QueryBuilder', () => {
@@ -23,7 +26,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, { searchTerm: 'john' });
       qb.search(['fullName', 'email']);
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where.OR).toEqual([
         { fullName: { contains: 'john', mode: 'insensitive' } },
         { email: { contains: 'john', mode: 'insensitive' } },
@@ -34,7 +37,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, { searchTerm: 'engineer' });
       qb.search(['job.title']);
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where.OR).toEqual([
         { job: { title: { contains: 'engineer', mode: 'insensitive' } } },
       ]);
@@ -44,7 +47,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.search(['fullName']);
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where).toBeUndefined();
     });
   });
@@ -61,7 +64,7 @@ describe('QueryBuilder', () => {
       });
       qb.filter();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where).toEqual({ status: 'ACTIVE' });
     });
 
@@ -71,7 +74,7 @@ describe('QueryBuilder', () => {
       });
       qb.filter();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where).toEqual({
         profile: { city: 'Dhaka' },
       });
@@ -83,7 +86,7 @@ describe('QueryBuilder', () => {
       });
       qb.filter();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where).toEqual({
         salary: { gte: 5000 },
       });
@@ -93,7 +96,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.rawFilter({ isDeleted: false });
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where).toEqual({ isDeleted: false });
     });
   });
@@ -105,7 +108,7 @@ describe('QueryBuilder', () => {
       });
       qb.sort();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.orderBy).toEqual([
         { createdAt: 'desc' },
         { fullName: 'asc' },
@@ -116,7 +119,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.sort();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.orderBy).toEqual([{ createdAt: 'desc' }]);
     });
   });
@@ -129,7 +132,7 @@ describe('QueryBuilder', () => {
       });
       qb.paginate();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.skip).toBe(40);
       expect(queryObj.take).toBe(20);
     });
@@ -138,7 +141,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.paginate();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.skip).toBe(0);
       expect(queryObj.take).toBe(10);
     });
@@ -151,7 +154,7 @@ describe('QueryBuilder', () => {
       });
       qb.fields();
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.select).toEqual({
         id: true,
         fullName: true,
@@ -163,7 +166,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.select({ id: true, profile: true });
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.select).toEqual({ id: true, profile: true });
     });
   });
@@ -173,7 +176,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.include({ executive: true });
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.include).toEqual({ executive: true });
     });
   });
@@ -183,7 +186,7 @@ describe('QueryBuilder', () => {
       const qb = new QueryBuilder(mockModel, {});
       qb.priceRange(100, 500);
 
-      const queryObj = (qb as any).prismaQuery;
+      const queryObj = qb.getPrismaQuery();
       expect(queryObj.where.price).toEqual({ gte: 100, lte: 500 });
     });
   });
