@@ -71,7 +71,7 @@ export class MembersController {
   }
 
   @Public()
-  @Get()
+  @Get('get-all')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -89,11 +89,11 @@ export class MembersController {
     };
   }
 
-  @Get(':id')
+  @Get('details/:id')
   @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get a single member by MongoDB ObjectId' })
+  @ApiOperation({ summary: 'Get a single member details by MongoDB ObjectId' })
   @ApiResponse({
     status: 200,
     description: 'Member retrieved successfully.',
@@ -136,7 +136,7 @@ export class MembersController {
     };
   }
 
-  @Patch(':id')
+  @Patch('update/:id')
   @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -161,7 +161,7 @@ export class MembersController {
     };
   }
 
-  @Delete(':id')
+  @Delete('delete/:id')
   @ApiBearerAuth()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)

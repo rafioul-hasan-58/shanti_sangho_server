@@ -112,7 +112,7 @@ describe('MembersController', () => {
     expect(res.data.fullName).toBe('Updated Member');
   });
 
-  it('should return paginated members on GET /members', async () => {
+  it('should return paginated members on GET /members/get-all', async () => {
     const query: QueryMemberDto = { page: 1, limit: 10 };
     const res = await controller.findAll(query);
     expect(membersService.findAll).toHaveBeenCalledWith(query);
@@ -120,7 +120,7 @@ describe('MembersController', () => {
     expect(res.data.members).toHaveLength(1);
   });
 
-  it('should return a single member on GET /members/:id', async () => {
+  it('should return a single member on GET /members/details/:id', async () => {
     const res = await controller.findOne(mockJwtUser.id);
     expect(membersService.findOne).toHaveBeenCalledWith(mockJwtUser.id);
     expect(res.message).toBe('Member retrieved successfully');
@@ -137,7 +137,7 @@ describe('MembersController', () => {
     expect(res.data.status).toBe(UserStatus.SUSPENDED);
   });
 
-  it('should update a member on PATCH /members/:id', async () => {
+  it('should update a member on PATCH /members/update/:id', async () => {
     const dto: UpdateMemberDto = { role: Role.MODERATOR };
     const res = await controller.update(mockJwtUser.id, dto, mockAdminUser);
     expect(membersService.updateMember).toHaveBeenCalledWith(
@@ -149,7 +149,7 @@ describe('MembersController', () => {
     expect(res.data.role).toBe(Role.MODERATOR);
   });
 
-  it('should delete a member on DELETE /members/:id', async () => {
+  it('should delete a member on DELETE /members/delete/:id', async () => {
     const res = await controller.remove(mockJwtUser.id, mockAdminUser);
     expect(membersService.deleteMember).toHaveBeenCalledWith(
       mockJwtUser.id,
