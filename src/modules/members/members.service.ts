@@ -135,7 +135,11 @@ export class MembersService {
 
   // Get all members by filter and pagination
   async findAll(query: QueryMemberDto): Promise<PaginatedMembersResponse> {
-    const memberQuery = new QueryBuilder<Member>(this.membersRepository, query)
+    const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+    const memberQuery = new QueryBuilder<Member>(this.membersRepository, {
+      ...query,
+      sort: sortOrder === 'asc' ? 'createdAt' : '-createdAt',
+    })
       .search([
         'fullName',
         'email',

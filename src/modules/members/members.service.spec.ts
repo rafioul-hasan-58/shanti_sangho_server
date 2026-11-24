@@ -214,12 +214,11 @@ describe('MembersService', () => {
         role: Role.USER,
         status: UserStatus.ACTIVE,
         emailVerified: false,
-        search: 'Test',
-        sortBy: 'fullName',
+        searchTerm: 'Test',
         sortOrder: 'asc',
       });
 
-      expect(repository.findAll).toHaveBeenCalledWith({
+      expect(repository.findMany).toHaveBeenCalledWith({
         where: {
           role: Role.USER,
           status: UserStatus.ACTIVE,
@@ -233,7 +232,7 @@ describe('MembersService', () => {
             { currentLocation: { contains: 'Test', mode: 'insensitive' } },
           ],
         },
-        orderBy: [{ fullName: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ createdAt: 'asc' }],
         skip: 5,
         take: 5,
       });
@@ -249,13 +248,12 @@ describe('MembersService', () => {
       });
     });
 
-    it('should support QueryBuilder searchTerm and sort string format', async () => {
+    it('should support QueryBuilder searchTerm and default sortOrder by createdAt desc', async () => {
       repository.findAll.mockResolvedValue([mockMember]);
       repository.count.mockResolvedValue(10);
 
       const result = await service.findAll({
         searchTerm: 'john',
-        sort: '-createdAt,fullName',
         page: 1,
         limit: 10,
       });
@@ -271,7 +269,7 @@ describe('MembersService', () => {
             { currentLocation: { contains: 'john', mode: 'insensitive' } },
           ],
         },
-        orderBy: [{ createdAt: 'desc' }, { fullName: 'asc' }],
+        orderBy: [{ createdAt: 'desc' }],
         skip: 0,
         take: 10,
       });

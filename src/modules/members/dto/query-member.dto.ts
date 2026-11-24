@@ -86,42 +86,14 @@ export class QueryMemberDto {
   })
   @IsOptional()
   @IsString()
-  search?: string;
-
-  @ApiPropertyOptional({
-    description: 'Alias for search keyword (QueryBuilder standard)',
-    example: 'Sourav',
-  })
-  @IsOptional()
-  @IsString()
   searchTerm?: string;
 
   @ApiPropertyOptional({
-    description: 'Field to sort by',
-    enum: ['createdAt', 'updatedAt', 'fullName', 'email', 'role', 'status'],
-    default: 'createdAt',
-  })
-  @IsOptional()
-  @IsIn(['createdAt', 'updatedAt', 'fullName', 'email', 'role', 'status'])
-  sortBy?:
-    'createdAt' | 'updatedAt' | 'fullName' | 'email' | 'role' | 'status' =
-    'createdAt';
-
-  @ApiPropertyOptional({
-    description: 'Sort direction',
+    description: 'Sort direction by creation date (createdAt)',
     enum: ['asc', 'desc'],
     default: 'desc',
   })
   @IsOptional()
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc';
-
-  @ApiPropertyOptional({
-    description:
-      'Comma-separated sort string with - prefix for descending (e.g. -createdAt,fullName)',
-    example: '-createdAt',
-  })
-  @IsOptional()
-  @IsString()
-  sort?: string;
 }
