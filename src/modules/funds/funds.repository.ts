@@ -20,6 +20,63 @@ export type FundWithStats = Fund & {
   expenses?: { amount: number }[];
 };
 
+export const recentContributionInclude = {
+  fund: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      isActive: true,
+    },
+  },
+  giverMember: {
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profileImage: true,
+      phoneNumber: true,
+      village: true,
+    },
+  },
+  receivedBy: {
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+    },
+  },
+} as const;
+
+export type RecentContributionRecord = Prisma.ContributionGetPayload<{
+  include: typeof recentContributionInclude;
+}>;
+
+export const recentExpenseInclude = {
+  fund: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      isActive: true,
+    },
+  },
+  spentBy: {
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      profileImage: true,
+    },
+  },
+} as const;
+
+export type RecentExpenseRecord = Prisma.ExpenseGetPayload<{
+  include: typeof recentExpenseInclude;
+}>;
+
 @Injectable()
 export class FundsRepository implements IBaseRepository<
   Fund,
@@ -104,5 +161,43 @@ export class FundsRepository implements IBaseRepository<
 
   async delete(id: string): Promise<Fund> {
     return this.prisma.fund.delete({ where: { id } });
+  }
+
+  async findRecentContributions(options: {
+    fundId?: string;
+    take: number;
+    skip?: number;
+  }): Promise<RecentContributionRecord[]> {
+    return this.prisma.contribution.findMany({
+      where: options.fundId ? { fundId: options.fundId } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: options.take,
+      skip: options.skip,
+      include: recentContributionInclude,
+    });
+  }
+
+  async findRecentExpenses(options: {
+    fundId?: string;
+    take: number;
+    skip?: number;
+  }): Promise<RecentExpenseRecord[]> {
+    return this.prisma.expense.findMany({
+      where: options.fundId ? { fundId: options.fundId } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: options.take,
+      skip: options.skip,
+      include: recentExpenseInclude,
+    });
+  }
+
+  async countContributions(
+    where?: Prisma.ContributionWhereInput,
+  ): Promise<number> {
+    return this.prisma.contribution.count({ where });
+  }
+
+  async countExpenses(where?: Prisma.ExpenseWhereInput): Promise<number> {
+    return this.prisma.expense.count({ where });
   }
 }

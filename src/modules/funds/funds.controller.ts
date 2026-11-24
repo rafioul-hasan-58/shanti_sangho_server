@@ -22,7 +22,12 @@ import { AuthGuard } from '../../common/guards/auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { FundsService } from './funds.service';
-import { CreateFundDto, QueryFundDto, UpdateFundDto } from './dto';
+import {
+  CreateFundDto,
+  QueryFundDto,
+  QueryRecentTransactionsDto,
+  UpdateFundDto,
+} from './dto';
 
 @ApiTags('Funds')
 @UseGuards(AuthGuard)
@@ -68,6 +73,39 @@ export class FundsController {
       message: 'Funds retrieved successfully',
       data,
     };
+  }
+
+  @Public()
+  @Get('recent-transactions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Get recent transactions (donations and expenses) ordered by createdAt (Public)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent transactions retrieved successfully.',
+  })
+  async getRecentTransactions(@Query() query: QueryRecentTransactionsDto) {
+    const data = await this.fundsService.getRecentTransactions(query);
+    return {
+      message: 'Recent transactions retrieved successfully',
+      data,
+    };
+  }
+
+  @Public()
+  @Get('recent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Alias for /funds/recent-transactions (Public)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent transactions retrieved successfully.',
+  })
+  async getRecentTransactionsAlias(@Query() query: QueryRecentTransactionsDto) {
+    return this.getRecentTransactions(query);
   }
 
   @Public()

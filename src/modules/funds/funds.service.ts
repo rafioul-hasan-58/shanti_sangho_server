@@ -6,7 +6,13 @@ import {
 } from '@nestjs/common';
 import { Fund, Prisma } from '@prisma/client';
 import { FundsRepository, FundWithStats } from './funds.repository';
-import { CreateFundDto, QueryFundDto, UpdateFundDto } from './dto';
+import {
+  CreateFundDto,
+  QueryFundDto,
+  QueryRecentTransactionsDto,
+  RecentTransactionType,
+  UpdateFundDto,
+} from './dto';
 
 export interface FundResponse {
   id: string;
@@ -21,6 +27,68 @@ export interface FundResponse {
     balance: number;
     contributionsCount: number;
     expensesCount: number;
+  };
+}
+
+export interface RecentTransactionItem {
+  id: string;
+  type: 'DONATION' | 'EXPENSE';
+  fundId: string;
+  fund: {
+    id: string;
+    name: string;
+    category: string;
+    isActive: boolean;
+  };
+  amount: number;
+  title: string;
+  note: string | null;
+  transactionDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  donationDetails?: {
+    method: string;
+    reference: string | null;
+    giverName: string | null;
+    giverMember: {
+      id: string;
+      fullName: string;
+      email: string;
+      profileImage: string | null;
+      phoneNumber: string | null;
+      village: string | null;
+    } | null;
+    receivedBy: {
+      id: string;
+      fullName: string;
+      email: string;
+      role: string;
+    };
+  };
+  expenseDetails?: {
+    spentOn: string;
+    receiptUrl: string | null;
+    spentBy: {
+      id: string;
+      fullName: string;
+      email: string;
+      role: string;
+      profileImage: string | null;
+    } | null;
+  };
+}
+
+export interface PaginatedRecentTransactionsResponse {
+  transactions: RecentTransactionItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    totalDonations: number;
+    totalExpenses: number;
   };
 }
 
@@ -250,5 +318,105 @@ export class FundsService {
     }
 
     return this.fundsRepository.delete(fundWithStats.id);
+  }
+
+  /**
+   * Retrieve recent transactions (donations and expenses) combined and sorted strictly by createdAt desc
+   */
+  async getRecentTransactions(
+    query: QueryRecentTransactionsDto,
+  ): Promise<PaginatedRecentTransactionsResponse> {
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit && query.limit > 0 ? query.limit : 10;
+    const type = query.type || RecentTransactionType.ALL;
+
+    const fetchTake = page * limit;
+
+    const [contributions, expenses, totalContributions, totalExpenses] =
+      await Promise.all([
+        type === RecentTransactionType.EXPENSE
+          ? Promise.resolve([])
+          : this.fundsRepository.findRecentContributions({
+              take: fetchTake,
+            }),
+        type === RecentTransactionType.DONATION
+          ? Promise.resolve([])
+          : this.fundsRepository.findRecentExpenses({
+              take: fetchTake,
+            }),
+        type === RecentTransactionType.EXPENSE
+          ? Promise.resolve(0)
+          : this.fundsRepository.countContributions(),
+        type === RecentTransactionType.DONATION
+          ? Promise.resolve(0)
+          : this.fundsRepository.countExpenses(),
+      ]);
+
+    const formattedContributions: RecentTransactionItem[] = contributions.map(
+      (c) => ({
+        id: c.id,
+        type: 'DONATION',
+        fundId: c.fundId,
+        fund: c.fund,
+        amount: c.amount,
+        title:
+          c.giverName || c.giverMember?.fullName
+            ? `Donation from ${c.giverName || c.giverMember?.fullName}`
+            : 'Donation',
+        note: c.note,
+        transactionDate: c.receivedAt,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        donationDetails: {
+          method: c.method,
+          reference: c.reference,
+          giverName: c.giverName,
+          giverMember: c.giverMember,
+          receivedBy: c.receivedBy,
+        },
+      }),
+    );
+
+    const formattedExpenses: RecentTransactionItem[] = expenses.map((e) => ({
+      id: e.id,
+      type: 'EXPENSE',
+      fundId: e.fundId,
+      fund: e.fund,
+      amount: e.amount,
+      title: `Expense: ${e.spentOn}`,
+      note: e.note,
+      transactionDate: e.spentAt,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+      expenseDetails: {
+        spentOn: e.spentOn,
+        receiptUrl: e.receiptUrl,
+        spentBy: e.spentBy,
+      },
+    }));
+
+    const merged = [...formattedContributions, ...formattedExpenses].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+
+    const skip = (page - 1) * limit;
+    const paginatedItems = merged.slice(skip, skip + limit);
+
+    const total = totalContributions + totalExpenses;
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      transactions: paginatedItems,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        totalDonations: totalContributions,
+        totalExpenses,
+      },
+    };
   }
 }

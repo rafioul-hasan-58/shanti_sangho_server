@@ -4,9 +4,10 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { FundCategory } from '@prisma/client';
+import { FundCategory, ReceiveMethod } from '@prisma/client';
 import { FundsService } from './funds.service';
 import { FundsRepository, FundWithStats } from './funds.repository';
+import { RecentTransactionType } from './dto';
 
 describe('FundsService', () => {
   let service: FundsService;
@@ -19,6 +20,10 @@ describe('FundsService', () => {
     findByName: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
+    findRecentContributions: jest.Mock;
+    findRecentExpenses: jest.Mock;
+    countContributions: jest.Mock;
+    countExpenses: jest.Mock;
   };
 
   const mockFund: FundWithStats = {
@@ -46,6 +51,10 @@ describe('FundsService', () => {
       findByName: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      findRecentContributions: jest.fn(),
+      findRecentExpenses: jest.fn(),
+      countContributions: jest.fn(),
+      countExpenses: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -222,6 +231,92 @@ describe('FundsService', () => {
         BadRequestException,
       );
       expect(repository.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getRecentTransactions', () => {
+    const mockContribution = {
+      id: '64a1b2c3d4e5f67890123499',
+      fundId: mockFund.id,
+      amount: 1000,
+      method: ReceiveMethod.BKASH,
+      receivedAt: new Date('2026-03-01T10:00:00Z'),
+      note: 'Tournament donation',
+      reference: 'TX123',
+      giverMemberId: null,
+      giverName: 'Rahim',
+      receivedById: '64a1b2c3d4e5f67890123400',
+      createdAt: new Date('2026-03-01T10:00:00Z'),
+      updatedAt: new Date('2026-03-01T10:00:00Z'),
+      fund: {
+        id: mockFund.id,
+        name: mockFund.name,
+        category: mockFund.category,
+        isActive: true,
+      },
+      giverMember: null,
+      receivedBy: {
+        id: '64a1b2c3d4e5f67890123400',
+        fullName: 'Admin User',
+        email: 'admin@example.com',
+        role: 'ADMIN',
+      },
+    };
+
+    const mockExpense = {
+      id: '64a1b2c3d4e5f67890123488',
+      fundId: mockFund.id,
+      amount: 500,
+      spentAt: new Date('2026-03-02T12:00:00Z'),
+      spentOn: 'Cricket Balls',
+      note: 'Bought 6 balls',
+      receiptUrl: null,
+      spentById: null,
+      createdAt: new Date('2026-03-02T12:00:00Z'),
+      updatedAt: new Date('2026-03-02T12:00:00Z'),
+      fund: {
+        id: mockFund.id,
+        name: mockFund.name,
+        category: mockFund.category,
+        isActive: true,
+      },
+      spentBy: null,
+    };
+
+    it('should return merged recent donations and expenses sorted by createdAt desc', async () => {
+      repository.findRecentContributions.mockResolvedValue([mockContribution]);
+      repository.findRecentExpenses.mockResolvedValue([mockExpense]);
+      repository.countContributions.mockResolvedValue(1);
+      repository.countExpenses.mockResolvedValue(1);
+
+      const result = await service.getRecentTransactions({
+        page: 1,
+        limit: 10,
+        type: RecentTransactionType.ALL,
+      });
+
+      expect(result.transactions).toHaveLength(2);
+      // Newer mockExpense (March 2) should be first, mockContribution (March 1) second
+      expect(result.transactions[0].type).toBe('EXPENSE');
+      expect(result.transactions[0].id).toBe(mockExpense.id);
+      expect(result.transactions[1].type).toBe('DONATION');
+      expect(result.transactions[1].id).toBe(mockContribution.id);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.totalDonations).toBe(1);
+      expect(result.meta.totalExpenses).toBe(1);
+    });
+
+    it('should only fetch donations when type is DONATION', async () => {
+      repository.findRecentContributions.mockResolvedValue([mockContribution]);
+      repository.countContributions.mockResolvedValue(1);
+
+      const result = await service.getRecentTransactions({
+        type: RecentTransactionType.DONATION,
+      });
+
+      expect(repository.findRecentExpenses).not.toHaveBeenCalled();
+      expect(result.transactions).toHaveLength(1);
+      expect(result.transactions[0].type).toBe('DONATION');
     });
   });
 });

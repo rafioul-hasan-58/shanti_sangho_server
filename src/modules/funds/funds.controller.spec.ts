@@ -14,6 +14,7 @@ describe('FundsController', () => {
     findOne: jest.Mock;
     update: jest.Mock;
     remove: jest.Mock;
+    getRecentTransactions: jest.Mock;
   };
 
   const mockFundResponse = {
@@ -52,6 +53,19 @@ describe('FundsController', () => {
         name: 'Updated GPL Fund',
       }),
       remove: jest.fn().mockResolvedValue(mockFundResponse),
+      getRecentTransactions: jest.fn().mockResolvedValue({
+        transactions: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          totalDonations: 0,
+          totalExpenses: 0,
+        },
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -115,5 +129,27 @@ describe('FundsController', () => {
     expect(fundsService.remove).toHaveBeenCalledWith(mockFundResponse.id);
     expect(res.message).toBe('Fund deleted successfully');
     expect(res.data).toEqual(mockFundResponse);
+  });
+
+  it('should return recent transactions on GET /funds/recent-transactions', async () => {
+    const res = await controller.getRecentTransactions({ page: 1, limit: 10 });
+    expect(fundsService.getRecentTransactions).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+    });
+    expect(res.message).toBe('Recent transactions retrieved successfully');
+    expect(res.data.transactions).toEqual([]);
+  });
+
+  it('should return recent transactions on GET /funds/recent (alias)', async () => {
+    const res = await controller.getRecentTransactionsAlias({
+      page: 1,
+      limit: 10,
+    });
+    expect(fundsService.getRecentTransactions).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+    });
+    expect(res.message).toBe('Recent transactions retrieved successfully');
   });
 });
