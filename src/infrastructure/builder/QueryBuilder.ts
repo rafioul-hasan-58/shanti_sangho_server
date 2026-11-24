@@ -20,7 +20,9 @@ export class QueryBuilder<T = any> {
 
   // Search
   search(searchableFields: string[]) {
-    const searchTerm = this.query.searchTerm as string;
+    const rawSearch = (this.query.searchTerm || this.query.search) as string;
+    const searchTerm =
+      typeof rawSearch === 'string' ? rawSearch.trim() : undefined;
     if (searchTerm) {
       const orConditions = searchableFields.map((field) => {
         if (field.includes('.')) {
@@ -51,12 +53,24 @@ export class QueryBuilder<T = any> {
   // Filter
   filter() {
     const queryObj = { ...this.query };
-    const excludeFields = ['searchTerm', 'sort', 'limit', 'page', 'fields'];
+    const excludeFields = [
+      'searchTerm',
+      'search',
+      'sort',
+      'sortBy',
+      'sortOrder',
+      'limit',
+      'page',
+      'fields',
+    ];
     excludeFields.forEach((field) => delete queryObj[field]);
 
     const formattedFilters: Record<string, any> = {};
 
     for (const [key, value] of Object.entries(queryObj)) {
+      if (value === undefined) {
+        continue;
+      }
       if (key.includes('.')) {
         // handle nested filters like job.title
         const parts = key.split('.');
@@ -103,13 +117,25 @@ export class QueryBuilder<T = any> {
 
   // Sorting
   sort() {
-    const sort = (this.query.sort as string)?.split(',') || ['-createdAt'];
+    let sortStr = this.query.sort as string;
+    if (!sortStr && this.query.sortBy) {
+      const order = this.query.sortOrder === 'asc' ? '' : '-';
+      sortStr = `${order}${this.query.sortBy as string}`;
+    }
+    const sort = sortStr?.split(',') || ['-createdAt'];
     const orderBy = sort.map((field) => {
       if (field.startsWith('-')) {
         return { [field.slice(1)]: 'desc' };
       }
       return { [field]: 'asc' };
     });
+
+    if (this.query.sortBy && this.query.sortBy !== 'createdAt') {
+      const hasCreatedAt = orderBy.some((o) => 'createdAt' in o);
+      if (!hasCreatedAt) {
+        orderBy.push({ createdAt: 'desc' });
+      }
+    }
 
     this.prismaQuery.orderBy = orderBy;
     return this;
@@ -161,15 +187,32 @@ export class QueryBuilder<T = any> {
 
   // **Execute Query*/
   async execute(): Promise<T[]> {
-    return await this.model.findMany(this.prismaQuery);
+    if (typeof this.model.findMany === 'function') {
+      return await this.model.findMany(this.prismaQuery);
+    }
+    if (typeof this.model.findAll === 'function') {
+      return await this.model.findAll(this.prismaQuery);
+    }
+    throw new Error(
+      'Model delegate must provide either findMany or findAll method.',
+    );
   }
 
   // Count Total
-  async countTotal() {
-    const total = await this.model.count({ where: this.prismaQuery.where });
+  async countTotal(): Promise<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPage: number;
+  }> {
+    const rawTotal: unknown = await this.model.count({
+      where: this.prismaQuery.where,
+    });
+    const total =
+      typeof rawTotal === 'number' ? rawTotal : Number(rawTotal) || 0;
     const page = Number(this.query.page) || 1;
     const limit = Number(this.query.limit) || 10;
-    const totalPage = Math.ceil(total / limit);
+    const totalPage = Math.ceil(total / limit) || 1;
     return {
       page,
       limit,

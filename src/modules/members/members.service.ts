@@ -8,6 +8,7 @@ import { Member, Prisma, UserStatus } from '@prisma/client';
 import { MembersRepository } from './members.repository';
 import { QueryMemberDto, UpdateMemberDto, UpdateProfileDto } from './dto';
 import { sanitizeMember } from './members.utils';
+import { QueryBuilder } from '../../infrastructure/builder/QueryBuilder';
 
 const NULLABLE_PROFILE_STRING_FIELDS = [
   'fatherName',
@@ -119,71 +120,38 @@ export class MembersService {
 
   // Get all members by filter and pagination
   async findAll(query: QueryMemberDto) {
-    const page = query.page && query.page > 0 ? query.page : 1;
-    const limit = query.limit && query.limit > 0 ? query.limit : 10;
-    const skip = (page - 1) * limit;
-    const take = limit;
+    const memberQuery = new QueryBuilder<Member>(
+      this.membersRepository,
+      query as Record<string, unknown>,
+    )
+      .search([
+        'fullName',
+        'email',
+        'phoneNumber',
+        'village',
+        'profession',
+        'currentLocation',
+      ])
+      .filter()
+      .sort()
+      .paginate();
 
-    const where: Prisma.MemberWhereInput = {};
-
-    if (query.role) {
-      where.role = query.role;
-    }
-    if (query.status) {
-      where.status = query.status;
-    }
-    if (query.membershipType) {
-      where.membershipType = query.membershipType;
-    }
-    if (query.bloodGroup) {
-      where.bloodGroup = query.bloodGroup;
-    }
-    if (typeof query.emailVerified === 'boolean') {
-      where.emailVerified = query.emailVerified;
-    }
-
-    if (query.search?.trim()) {
-      const term = query.search.trim();
-      where.OR = [
-        { fullName: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { email: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { phoneNumber: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { village: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        { profession: { contains: term, mode: Prisma.QueryMode.insensitive } },
-        {
-          currentLocation: {
-            contains: term,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-      ];
-    }
-
-    const sortBy = query.sortBy || 'createdAt';
-    const sortOrder = query.sortOrder || 'desc';
-    const orderBy: Prisma.MemberOrderByWithRelationInput[] = [
-      { [sortBy]: sortOrder },
-    ];
-    if (sortBy !== 'createdAt') {
-      orderBy.push({ createdAt: 'desc' });
-    }
-
-    const [members, total] = await Promise.all([
-      this.membersRepository.findAll({ where, orderBy, skip, take }),
-      this.membersRepository.count(where),
+    const [members, countMeta] = await Promise.all([
+      memberQuery.execute(),
+      memberQuery.countTotal(),
     ]);
 
-    const totalPages = Math.ceil(total / limit) || 1;
+    const totalPages = countMeta.totalPage || 1;
 
     return {
       members: members.map(sanitizeMember),
       meta: {
-        total,
-        page,
-        limit,
+        total: countMeta.total,
+        page: countMeta.page,
+        limit: countMeta.limit,
         totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
+        hasNextPage: countMeta.page < totalPages,
+        hasPreviousPage: countMeta.page > 1,
       },
     };
   }

@@ -18,6 +18,7 @@ import { MembersRepository } from './members.repository';
 describe('MembersService', () => {
   let service: MembersService;
   let repository: {
+    findMany: jest.Mock;
     findAll: jest.Mock;
     count: jest.Mock;
     findById: jest.Mock;
@@ -55,8 +56,10 @@ describe('MembersService', () => {
   };
 
   beforeEach(async () => {
+    const findManyMock = jest.fn();
     repository = {
-      findAll: jest.fn(),
+      findAll: findManyMock,
+      findMany: findManyMock,
       count: jest.fn(),
       findById: jest.fn(),
       update: jest.fn(),
@@ -244,6 +247,35 @@ describe('MembersService', () => {
         hasNextPage: false,
         hasPreviousPage: true,
       });
+    });
+
+    it('should support QueryBuilder searchTerm and sort string format', async () => {
+      repository.findAll.mockResolvedValue([mockMember]);
+      repository.count.mockResolvedValue(10);
+
+      const result = await service.findAll({
+        searchTerm: 'john',
+        sort: '-createdAt,fullName',
+        page: 1,
+        limit: 10,
+      });
+
+      expect(repository.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { fullName: { contains: 'john', mode: 'insensitive' } },
+            { email: { contains: 'john', mode: 'insensitive' } },
+            { phoneNumber: { contains: 'john', mode: 'insensitive' } },
+            { village: { contains: 'john', mode: 'insensitive' } },
+            { profession: { contains: 'john', mode: 'insensitive' } },
+            { currentLocation: { contains: 'john', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ createdAt: 'desc' }, { fullName: 'asc' }],
+        skip: 0,
+        take: 10,
+      });
+      expect(result.meta.totalPages).toBe(1);
     });
   });
 

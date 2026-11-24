@@ -89,6 +89,14 @@ export class QueryMemberDto {
   search?: string;
 
   @ApiPropertyOptional({
+    description: 'Alias for search keyword (QueryBuilder standard)',
+    example: 'Sourav',
+  })
+  @IsOptional()
+  @IsString()
+  searchTerm?: string;
+
+  @ApiPropertyOptional({
     description: 'Field to sort by',
     enum: ['createdAt', 'updatedAt', 'fullName', 'email', 'role', 'status'],
     default: 'createdAt',
@@ -107,4 +115,13 @@ export class QueryMemberDto {
   @IsOptional()
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'desc';
+
+  @ApiPropertyOptional({
+    description:
+      'Comma-separated sort string with - prefix for descending (e.g. -createdAt,fullName)',
+    example: '-createdAt',
+  })
+  @IsOptional()
+  @IsString()
+  sort?: string;
 }

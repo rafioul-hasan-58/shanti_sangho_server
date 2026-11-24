@@ -22,6 +22,10 @@ export class MembersRepository implements IBaseRepository<
     return this.prisma.member.create({ data });
   }
 
+  async findMany(options?: FindMembersOptions): Promise<Member[]> {
+    return this.findAll(options);
+  }
+
   async findAll(options?: FindMembersOptions): Promise<Member[]> {
     return this.prisma.member.findMany({
       where: options?.where,
@@ -31,8 +35,19 @@ export class MembersRepository implements IBaseRepository<
     });
   }
 
-  async count(where?: Prisma.MemberWhereInput): Promise<number> {
-    return this.prisma.member.count({ where });
+  async count(
+    argsOrWhere?: Prisma.MemberCountArgs | Prisma.MemberWhereInput,
+  ): Promise<number> {
+    if (
+      argsOrWhere &&
+      typeof argsOrWhere === 'object' &&
+      'where' in argsOrWhere
+    ) {
+      return this.prisma.member.count(argsOrWhere);
+    }
+    return this.prisma.member.count({
+      where: argsOrWhere as Prisma.MemberWhereInput,
+    });
   }
 
   async findById(id: string): Promise<Member | null> {
