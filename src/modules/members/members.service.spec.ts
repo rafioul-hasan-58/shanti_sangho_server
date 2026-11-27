@@ -233,6 +233,7 @@ describe('MembersService', () => {
         role: Role.USER,
         status: UserStatus.ACTIVE,
         emailVerified: false,
+        adminVerified: true,
         searchTerm: 'Test',
         sortOrder: 'asc',
       });
@@ -242,6 +243,7 @@ describe('MembersService', () => {
           role: Role.USER,
           status: UserStatus.ACTIVE,
           emailVerified: false,
+          adminVerified: true,
           OR: [
             { fullName: { contains: 'Test', mode: 'insensitive' } },
             { email: { contains: 'Test', mode: 'insensitive' } },

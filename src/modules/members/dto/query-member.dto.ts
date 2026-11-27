@@ -80,6 +80,32 @@ export class QueryMemberDto {
   emailVerified?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Filter by phone verification status',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @IsBoolean()
+  phoneVerified?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Filter by admin verification status',
+    example: true,
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @IsBoolean()
+  adminVerified?: boolean;
+
+  @ApiPropertyOptional({
     description:
       'Search keyword matching fullName, email, phoneNumber, village, profession, or currentLocation',
     example: 'Sourav',
