@@ -60,6 +60,7 @@ describe('AuthService', () => {
     emailVerified: false,
     phoneVerified: false,
     adminVerified: false,
+    dateOfBirth: null,
     googleId: null,
     createdAt: new Date(),
     updatedAt: new Date(),

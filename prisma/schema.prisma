@@ -37,6 +37,7 @@ model Member {
   emailVerified   Boolean        @default(false)
   phoneVerified   Boolean        @default(false)
   adminVerified   Boolean        @default(false)
+  dateOfBirth     DateTime?
   googleId        String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -120,9 +121,9 @@ model Contribution {
   fundId String @db.ObjectId
   fund   Fund   @relation(fields: [fundId], references: [id])
 
-  amount     Int 
-  method     ReceiveMethod 
-  receivedAt DateTime 
+  amount     Int
+  method     ReceiveMethod
+  receivedAt DateTime
   note       String?
   reference  String?
 
@@ -140,9 +141,9 @@ model Contribution {
 }
 
 model Expense {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  fundId String @db.ObjectId
-  fund   Fund   @relation(fields: [fundId], references: [id])
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  fundId     String   @db.ObjectId
+  fund       Fund     @relation(fields: [fundId], references: [id])
   amount     Int
   spentAt    DateTime
   spentOn    String

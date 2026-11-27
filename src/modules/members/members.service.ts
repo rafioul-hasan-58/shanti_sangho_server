@@ -111,6 +111,11 @@ export class MembersService {
       updateData.membershipType = dto.membershipType;
     }
 
+    const dobValue = dto.dateOfBirth !== undefined ? dto.dateOfBirth : dto.dob;
+    if (dobValue !== undefined) {
+      updateData.dateOfBirth = dobValue ? new Date(dobValue) : null;
+    }
+
     return updateData;
   }
 

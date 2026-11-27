@@ -50,6 +50,7 @@ describe('MembersService', () => {
     emailVerified: false,
     phoneVerified: false,
     adminVerified: false,
+    dateOfBirth: null,
     googleId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -173,6 +174,24 @@ describe('MembersService', () => {
         bio: null,
       });
       expect(result.id).toBe(mockMember.id);
+    });
+
+    it('should update dateOfBirth and support dob alias', async () => {
+      const birthDate = new Date('1998-08-20T00:00:00.000Z');
+      repository.findById.mockResolvedValue(mockMember);
+      repository.update.mockResolvedValue({
+        ...mockMember,
+        dateOfBirth: birthDate,
+      });
+
+      const result = await service.updateProfile(mockMember.id, {
+        dob: birthDate,
+      });
+
+      expect(repository.update).toHaveBeenCalledWith(mockMember.id, {
+        dateOfBirth: birthDate,
+      });
+      expect(result.dateOfBirth).toEqual(birthDate);
     });
 
     it('should throw BadRequestException if trimmed fullName is shorter than 2 characters', async () => {

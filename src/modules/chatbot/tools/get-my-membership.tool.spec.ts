@@ -21,6 +21,7 @@ describe('GetMyMembershipTool', () => {
     village: 'Shavarchala',
     profession: 'Software Engineer',
     currentLocation: 'Dhaka',
+    dateOfBirth: null,
     createdAt: new Date('2023-01-01'),
     password: 'hashed_secret_password',
   };
@@ -108,6 +109,7 @@ describe('GetMyMembershipTool', () => {
         village: mockMember.village,
         profession: mockMember.profession,
         currentLocation: mockMember.currentLocation,
+        dateOfBirth: mockMember.dateOfBirth,
         memberSince: mockMember.createdAt,
       });
 

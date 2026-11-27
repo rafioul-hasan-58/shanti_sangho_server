@@ -1,6 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { BloodGroup, MembershipType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsDate,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({
@@ -117,4 +124,39 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   facebookProfile?: string;
+
+  @ApiPropertyOptional({
+    description: 'Date of birth (ISO 8601 date string, e.g. YYYY-MM-DD)',
+    example: '1995-05-15T00:00:00.000Z',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === null || value === '' || value === 'null') return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? value : d;
+    }
+    return value;
+  })
+  @IsDate({ message: 'dateOfBirth must be a valid date' })
+  dateOfBirth?: Date | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Alias for dateOfBirth (ISO 8601 date string, e.g. YYYY-MM-DD)',
+    example: '1995-05-15T00:00:00.000Z',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === null || value === '' || value === 'null') return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' || typeof value === 'number') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? value : d;
+    }
+    return value;
+  })
+  @IsDate({ message: 'dob must be a valid date' })
+  dob?: Date | null;
 }

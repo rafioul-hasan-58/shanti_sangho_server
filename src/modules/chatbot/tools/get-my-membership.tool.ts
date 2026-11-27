@@ -61,6 +61,7 @@ export class GetMyMembershipTool implements ChatTool {
         village: member.village,
         profession: member.profession,
         currentLocation: member.currentLocation,
+        dateOfBirth: member.dateOfBirth,
         memberSince: member.createdAt,
       };
     } catch (err: unknown) {

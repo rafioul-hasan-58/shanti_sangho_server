@@ -181,6 +181,9 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(payload.password, 12);
     const membershipType = payload.membershipType || MembershipType.PERMANENT;
     const bloodGroup = payload.bloodGroup || BloodGroup.UNKNOWN;
+    const dobValue =
+      payload.dateOfBirth !== undefined ? payload.dateOfBirth : payload.dob;
+    const dateOfBirth = dobValue ? new Date(dobValue) : null;
 
     const user = await this.membersRepository.create({
       fullName,
@@ -199,6 +202,7 @@ export class AuthService {
       membershipType,
       facebookProfile: payload.facebookProfile || null,
       profileImage: payload.profileImage || null,
+      dateOfBirth,
       role: Role.USER,
       status: UserStatus.ACTIVE,
       authProvider: AuthProvider.EMAIL,
